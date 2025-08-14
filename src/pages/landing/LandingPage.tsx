@@ -3,20 +3,27 @@ import useFetch from "@/hooks/useFetch";
 import useScreenSize from "@/hooks/useScreenSize";
 import type { Riddle } from "@/types/common";
 import type { RequestError } from "@/types/error";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, RotateCcwIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getRandomRiddle } from "./api";
 import { queryKeys } from "@/assets/queryKeys";
-import { Collapse, ConfigProvider, type CollapseProps } from "antd";
+import { Button, Collapse, ConfigProvider, type CollapseProps } from "antd";
 import { useMemo } from "react";
 import LoadingDots from "@/components/LoadingDots";
+import { cat } from "@/assets/data";
 
 const LandingPage = () => {
   const { isMd } = useScreenSize();
   const navigate = useNavigate();
 
-  const { data: riddle, isLoading } = useFetch<Riddle, RequestError>({
-    queryFn: getRandomRiddle,
+  const random = Math.floor(Math.random() * cat.length);
+  const cate = cat[random];
+  const {
+    data: riddle,
+    isLoading,
+    refetch,
+  } = useFetch<Riddle, RequestError>({
+    queryFn: () => getRandomRiddle(cate),
     title: "Random riddle",
     queryKeys: [`${queryKeys.RANDOMRIDDLE}`],
   });
@@ -42,9 +49,21 @@ const LandingPage = () => {
             {riddle?.answer}
           </span>
         ),
+        extra: (
+          <Button
+            onClick={() => refetch()}
+            size="small"
+            type="link"
+            icon={
+              !isLoading && (
+                <RotateCcwIcon color="#f84565" className="text-primary size-4" />
+              )
+            }
+          />
+        ),
       },
     ];
-  }, [isLoading, riddle?.answer, riddle?.riddle]);
+  }, [isLoading, refetch, riddle?.answer, riddle?.riddle]);
   return (
     <div className="min-w-full min-h-dvh flex flex-col items-center justify-center overflow-hidden">
       <>
@@ -93,11 +112,15 @@ const LandingPage = () => {
           },
         }}
       >
-        <div className="max-w-11/12 w-11/12">
+        <div className="max-w-11/12 max-md:w-11/12 flex flex-col">
           <Collapse
             items={item}
             className="mt-10 max-sm:w-11/12 shadow border-2 !border-primary"
           />
+          <span className="flex max-sm:w-11/12 items-center justify-between text-xs px-5 py-1.5 text-primary">
+            <span>Category:</span>
+            <span className="capitalize text-white">{cate}</span>
+          </span>
         </div>
       </ConfigProvider>
     </div>

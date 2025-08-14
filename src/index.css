@@ -16,9 +16,15 @@ body {
   color: white;
   background-color: #09090b;
 }
+.color{ 
+  color: #140000;
+}
 
 .no-scrollbar {
   scrollbar-width: none;
+}
+.ant-select-selector {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.1) !important;
 }
 
 .debug {
@@ -114,4 +120,8 @@ body {
 
 .ant-collapse-expand-icon .anticon svg {
   color: #f84565;
+}
+
+.anticon svg {
+  color: #f84565 !important;
 }

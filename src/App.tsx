@@ -4,6 +4,8 @@ import LandingPage from "./pages/landing/LandingPage";
 import Home from "./pages/Home";
 import Layout from "./components/Layout";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Rooms from "./pages/Rooms";
+import Config from "./pages/Alone/config";
 
 function App() {
   const queryClient = new QueryClient();
@@ -14,6 +16,8 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route element={<Layout />}>
             <Route path="/home" element={<Home />} />
+            <Route path="/rooms" element={<Rooms />} />
+            <Route path="/alone/config" element={<Config />} />
           </Route>
         </Routes>
       </QueryClientProvider>
