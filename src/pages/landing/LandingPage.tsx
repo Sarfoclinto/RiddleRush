@@ -63,11 +63,11 @@ const LandingPage = () => {
         <BlurCircle animate size={isMd ? "xl" : "lg"} />
       </>
 
-      <div className="flex flex-col gap-2 mb-5">
+      <div className="flex flex-col gap-2 mb-5 p-5">
         <p className="font-semibold text-xl text-left -tracking-tighter">
           WELCOME TO
         </p>
-        <p className="font-bold text-8xl">
+        <p className="font-bold text-6xl md:text-8xl">
           Riddle <span className="text-primary">Rush</span>
         </p>
         <p className="text-lg text-gray-200 text-center font-medium">
@@ -76,7 +76,7 @@ const LandingPage = () => {
       </div>
       <button
         onClick={() => navigate("/home")}
-        className="bg-primary w-fit flex items-center justify-center gap-2 mb-5 px-4 sm:py-3 sm:px-6 hover:bg-primary-dull duration-200 hover:shadow-[0_0_20px_#f84565] active:scale-95 transition rounded-full font-medium cursor-pointer"
+        className="bg-primary w-fit flex items-center justify-center gap-2 mb-5 px-4 py-1.5 sm:py-3 sm:px-6 hover:bg-primary-dull duration-200 hover:shadow-[0_0_20px_#f84565] active:scale-95 transition rounded-full font-medium cursor-pointer"
       >
         Get Started
         <span>
@@ -93,7 +93,7 @@ const LandingPage = () => {
           },
         }}
       >
-        <div className="max-w-11/12">
+        <div className="max-w-11/12 w-11/12">
           <Collapse
             items={item}
             className="mt-10 max-sm:w-11/12 shadow border-2 !border-primary"
