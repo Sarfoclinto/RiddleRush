@@ -1,0 +1,117 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #f84565;
+  --color-primary-dull: #d63854;
+}
+
+* {
+  font-family: "Outfit", sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #787777 #1e1e1e;
+}
+
+body {
+  color: white;
+  background-color: #09090b;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.debug {
+  border: 1px solid red;
+}
+
+@keyframes bounceX {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+.bounce-x {
+  animation: bounceX 1s infinite;
+}
+
+@keyframes blobMove {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.6;
+  animation: blobMove 12s ease-in-out infinite;
+}
+
+@keyframes floatParticles {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(20px);
+    opacity: 0;
+  }
+}
+
+.particle {
+  position: absolute;
+  background-color: #f84565;
+  border-radius: 50%;
+  animation: floatParticles linear infinite;
+}
+
+@keyframes wave {
+  0%,
+  60%,
+  100% {
+    transform: initial;
+  }
+  30% {
+    transform: translateY(-8px);
+  }
+}
+
+.wave-dot {
+  animation: wave 1.2s infinite ease-in-out;
+  background-color: #f84565;
+  border-radius: 50%;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+  margin: 0 4px;
+}
+.wave-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+.wave-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.wave-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.ant-collapse-expand-icon .anticon svg {
+  color: #f84565;
+}
