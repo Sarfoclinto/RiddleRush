@@ -6,6 +6,7 @@ import Layout from "./components/Layout";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Rooms from "./pages/Rooms";
 import Config from "./pages/Alone/config";
+import Playtime from "./pages/Alone/playtime";
 
 function App() {
   const queryClient = new QueryClient();
@@ -18,6 +19,7 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/alone/config" element={<Config />} />
+            <Route path="/alone/playtime/:id" element={<Playtime />} />
           </Route>
         </Routes>
       </QueryClientProvider>

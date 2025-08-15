@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { api } from "./_generated/api";
+import { action, mutation, query } from "./_generated/server";
+// import { api } from "./_generated/api";
 import { computePointersFromIndex } from "./utils/fns";
 
 export const savePlaytime = mutation({
@@ -32,7 +32,7 @@ export const savePlaytime = mutation({
       next,
       secondsPerRiddle: playtime.secondsPerRiddle,
     };
-    await ctx.db.insert("playtimes", payload);
+    return await ctx.db.insert("playtimes", payload);
   },
 });
 
@@ -40,7 +40,11 @@ export const getPlaytimeById = query({
   args: { id: v.id("playtimes") },
   handler: async (ctx, { id }) => {
     const playtime = await ctx.db.get(id);
-    return playtime;
+    if (!playtime) {
+      throw new Error("Playtime not found");
+    }
+    const user = await ctx.db.get(playtime?.userId);
+    return { ...playtime, user };
   },
 });
 
@@ -129,42 +133,17 @@ export const advancePlaytime = mutation({
   },
 });
 
-export const createPlaytime = mutation({
-  args: {
-    username: v.id("users"),
-    riddles: v.array(v.object({ riddle: v.string(), answer: v.string() })),
-    category: v.string(),
-    timeSpan: v.number(),
-  },
-  handler: async (ctx, { category, timeSpan, username, riddles }) => {
-    const userId = await ctx.runMutation(api.users.createUserByUsername, {
-      username,
-    });
-    const catId = await ctx.runMutation(api.category.saveCategory, {
-      name: category,
-    });
-
-    // loop through riddles and save them returning thier ids
-    const riddleIds = await Promise.all(
-      riddles.map((r) => {
-        const riddleId = ctx.runMutation(api.riddles.saveRiddle, {
-          riddle: {
-            text: r.riddle,
-            answer: r.answer,
-            category: catId,
-          },
-        });
-        return riddleId;
-      })
+export const getRiddles = action({
+  args: { category: v.string(), numberOfRiddles: v.number() },
+  handler: async (_, { category, numberOfRiddles }) => {
+    const res = await fetch(
+      `https://riddles-api-eight.vercel.app/${category}/${numberOfRiddles}`
     );
 
-    const playtimeId = ctx.runMutation(api.playtime.savePlaytime, {
-      playtime: {
-        userId,
-        riddles: riddleIds,
-        secondsPerRiddle: timeSpan,
-      },
-    });
-    // return playtimeId;
+    if (!res.ok) {
+      throw new Error("Failed to fetch riddles");
+    }
+    const riddles = await res.json();
+    return riddles?.riddlesArray;
   },
 });

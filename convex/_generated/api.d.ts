@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as actions from "../actions.js";
 import type * as category from "../category.js";
 import type * as playtime from "../playtime.js";
 import type * as riddles from "../riddles.js";
@@ -28,6 +29,7 @@ import type * as utils_fns from "../utils/fns.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  actions: typeof actions;
   category: typeof category;
   playtime: typeof playtime;
   riddles: typeof riddles;

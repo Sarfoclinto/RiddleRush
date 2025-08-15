@@ -16,7 +16,9 @@ export default defineSchema({
     choices: v.optional(v.array(v.string())),
     category: v.string(),
     difficulty: v.optional(v.string()),
-  }).index("by_hash", ["hash"]),
+  })
+    .index("by_hash", ["hash"])
+    .index("by_text", ["text"]),
 
   playtimes: defineTable({
     userId: v.id("users"),

@@ -11,7 +11,7 @@ const AntConfig = ({ children }: AntFormConfigProps) => {
       theme={{
         token: {
           colorBorder: "#f84565",
-          colorBgBase: "#f84565",
+          // colorBgBase: "#f84565",
           colorBorderBg: "#f84565",
           boxShadow: "0 0 0 rgba(248, 69, 101, 0.2)",
           colorTextPlaceholder: "#f84565",
@@ -41,6 +41,14 @@ const AntConfig = ({ children }: AntFormConfigProps) => {
             colorText: "#f84565",
             selectorBg: "#000000",
             optionSelectedBg: "#140000",
+          },
+          Message: {
+            contentBg: "#f84565",
+            colorText: "white",
+            colorSuccess: "#00ee20",
+            colorError: "#000000",
+            colorIcon: "white",
+            colorInfo: "pink",
           },
         },
       }}

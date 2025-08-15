@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 export const saveCategory = mutation({
   args: { name: v.string() },
@@ -15,5 +15,24 @@ export const saveCategory = mutation({
     }
     const categoryId = ctx.db.insert("categories", { name: cat });
     return categoryId;
+  },
+});
+
+export const getCategoryByName = query({
+  args: {
+    name: v.string(),
+  },
+  handler: async (ctx, { name }) => {
+    return await ctx.db
+      .query("categories")
+      .withIndex("by_name", (q) => q.eq("name", name))
+      .unique();
+  },
+});
+
+export const getAllCategories = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("categories").collect();
   },
 });

@@ -1,43 +1,46 @@
 import { cat } from "@/assets/data";
-import type {  PlaytimeForm } from "@/types/common";
+import type { PlaytimeForm } from "@/types/common";
 import { capitalize } from "@/utils/fns";
 import { Button, Form, Input, InputNumber, Select } from "antd";
 import { ArrowRightIcon } from "lucide-react";
-import { getRiddles } from "./api";
-// import { queryKeys } from "@/assets/queryKeys";
-import { useMutation } from "@tanstack/react-query";
-// import { useMutation as useConvexMutation } from "convex/react";
-// import { useMemo } from "react";
-import { saveToStorage } from "@/services/storage";
-// import {api} from "../../../convex/_generated/api";
+import { removeFromStorage, saveToStorage } from "@/services/storage";
+import { useAction } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const Config = () => {
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
   const options = cat.map((ct) => ({
     label: capitalize(ct),
-    value: ct,
+    value: ct.toLowerCase(),
   }));
 
-  // const { data, refetch, isRefetching } = useFetch<CatRiddle, RequestError>({
-  //   queryFn: () => getRiddles({ cat: "", number: 2 }),
-  //   enabled: fetch,
-  //   title: "Riddles",
-  //   queryKeys: [`${queryKeys.RIDDLES}`],
-  // });
-
-  const { mutateAsync } = useMutation({
-    mutationFn: getRiddles,
-  });
-
-  // const riddles = useMemo(() => data as CatRiddle, [data]);
-  // const savePlayTime = useConvexMutation(api.playtime);
+  const createPlaytime = useAction(api.actions.createPlaytime);
 
   const onFinish = async (values: PlaytimeForm) => {
-    saveToStorage("playtimeForm", values);
-    await mutateAsync({
-      cat: values.category,
-      number: String(values.numberOfRiddles),
-    });
+    setLoading(true);
+    removeFromStorage("playtimeForm");
+    try {
+      const playtimeId = await createPlaytime({
+        username: values.username,
+        numberOfRiddles: values.numberOfRiddles,
+        category: values.category,
+        timeSpan: values.timeSpan,
+      });
+      if (playtimeId) {
+        saveToStorage("playtimeId", playtimeId);
+        console.log("Created playtime:", playtimeId);
+        navigate(`/alone/playtime/${playtimeId}`);
+      }
+    } catch (error) {
+      console.error("Error creating playtime:", error);
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="flex w-full flex-col h-full items-center justify-center">
@@ -129,6 +132,8 @@ const Config = () => {
 
           <Button
             block
+            loading={loading}
+            disabled={loading}
             className="!bg-[#f84565] hover:!bg-primary-dull !border-none !outline-none !text-black mt-5 !flex !items-center"
             htmlType="submit"
           >

@@ -16,8 +16,8 @@ body {
   color: white;
   background-color: #09090b;
 }
-.color{ 
-  color: #140000;
+.color {
+  color: #9b2828;
 }
 
 .no-scrollbar {
@@ -30,7 +30,13 @@ body {
 .debug {
   border: 1px solid red;
 }
+.ant-collapse-expand-icon .anticon svg {
+  color: #f84565;
+}
 
+/* .anticon svg {
+  color: #f84565 !important;
+} */
 @keyframes bounceX {
   0%,
   100% {
@@ -116,12 +122,4 @@ body {
 }
 .wave-dot:nth-child(3) {
   animation-delay: 0.4s;
-}
-
-.ant-collapse-expand-icon .anticon svg {
-  color: #f84565;
-}
-
-.anticon svg {
-  color: #f84565 !important;
 }
