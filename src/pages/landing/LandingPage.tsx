@@ -22,6 +22,7 @@ const LandingPage = () => {
     data: riddle,
     isLoading,
     refetch,
+    isRefetching,
   } = useFetch<Riddle, RequestError>({
     queryFn: () => getRandomRiddle(cate),
     title: "Random riddle",
@@ -49,21 +50,9 @@ const LandingPage = () => {
             {riddle?.answer}
           </span>
         ),
-        extra: (
-          <Button
-            onClick={() => refetch()}
-            size="small"
-            type="link"
-            icon={
-              !isLoading && (
-                <RotateCcwIcon color="#f84565" className="text-primary size-4" />
-              )
-            }
-          />
-        ),
       },
     ];
-  }, [isLoading, refetch, riddle?.answer, riddle?.riddle]);
+  }, [isLoading, riddle?.answer, riddle?.riddle]);
   return (
     <div className="min-w-full min-h-dvh flex flex-col items-center justify-center overflow-hidden">
       <>
@@ -113,6 +102,25 @@ const LandingPage = () => {
         }}
       >
         <div className="max-w-11/12 max-md:w-11/12 flex flex-col">
+          <span className="flex max-sm:w-11/12 items-center justify-between text-xs px-5 py-1.5 text-primary">
+            <div />
+            <Button
+              onClick={() => refetch()}
+              size="small"
+              type="link"
+              icon={
+                !isLoading &&
+                (isRefetching ? (
+                  <LoadingDots />
+                ) : (
+                  <RotateCcwIcon
+                    color="#f84565"
+                    className="text-primary size-4"
+                  />
+                ))
+              }
+            />
+          </span>
           <Collapse
             items={item}
             className="mt-10 max-sm:w-11/12 shadow border-2 !border-primary"
