@@ -19,6 +19,7 @@ import type * as playtime from "../playtime.js";
 import type * as riddles from "../riddles.js";
 import type * as users from "../users.js";
 import type * as utils_fns from "../utils/fns.js";
+import type * as utils_riddleFns from "../utils/riddleFns.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   riddles: typeof riddles;
   users: typeof users;
   "utils/fns": typeof utils_fns;
+  "utils/riddleFns": typeof utils_riddleFns;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

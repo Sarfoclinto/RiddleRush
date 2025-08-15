@@ -3,13 +3,14 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router-dom";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TimerProgressBarHandle } from "@/types/common";
 import TimerProgressBar from "@/components/TImeProgressBar";
 import { Button, message } from "antd";
 import useScreenSize from "@/hooks/useScreenSize";
 import { ChevronRightIcon } from "lucide-react";
 import SinglePlayed from "@/components/SinglePlayed";
+import { isAnswerCorrect, shuffle } from "@/utils/riddleFns";
 // import tick from "/tick.mp3";
 
 const Playtime = () => {
@@ -19,18 +20,23 @@ const Playtime = () => {
   const [value, setValue] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
   const [proceeding, setProceeding] = useState(false);
+  const skipInProgressRef = useRef<boolean>(false); // guard so we don't double-skip
 
-  const toast = (message?: string, type?: "success" | "error" | "info") => {
-    messageApi.open({
-      type: type ?? "success",
-      content: message ?? "Successful",
-    });
-  };
+  const toast = useCallback(
+    (message?: string, type?: "success" | "error" | "info") => {
+      messageApi.open({
+        type: type ?? "success",
+        content: message ?? "Successful",
+      });
+    },
+    [messageApi]
+  );
 
   const playtimes = useQuery(
     api.playtime.getPlaytimeById,
     id ? { id: id as Id<"playtimes"> } : "skip"
   );
+
   const sum = useMemo(() => {
     return (
       (playtimes?.corrects?.length || 0) +
@@ -48,6 +54,52 @@ const Playtime = () => {
 
   const advance = useMutation(api.playtime.advancePlaytime);
 
+  const getAcceptedAnswers = (): string[] => {
+    const raw = riddle?.answer;
+    if (raw == null) return [];
+    return Array.isArray(raw) ? raw.map((a) => String(a)) : [String(raw)];
+  };
+
+  // AUTO-SKIP function used by timer onComplete and can be reused by Skip button
+  const autoSkip = useCallback(async () => {
+    if (skipInProgressRef.current) return;
+    skipInProgressRef.current = true;
+    setProceeding(true);
+    try {
+      await advance({
+        playtimeId: playtimes?._id as Id<"playtimes">,
+        result: "skipped",
+      });
+      toast("Time's up — skipped!", "info");
+      setValue("");
+    } catch (err) {
+      console.error("autoSkip error:", err);
+      toast("Sorry an error occured", "error");
+    } finally {
+      setProceeding(false);
+      skipInProgressRef.current = false;
+    }
+  }, [advance, playtimes?._id, toast]);
+
+  // Ensure timer resets/starts when a new riddle arrives.
+  useEffect(() => {
+    if (!riddle) return;
+    // 1) If the TimerProgressBar exposes a reset(start) method, call it:
+    try {
+      // give the timer a moment to mount if you remount via key (not strictly necessary)
+      if (timerRef.current?.reset) {
+        timerRef.current.reset(playtimes?.secondsPerRiddle);
+        timerRef.current.start?.();
+      }
+    } catch (err) {
+      console.warn(
+        "Timer control methods not available on ref — falling back to key remount.",
+        err
+      );
+    }
+    // If you use key remount (below), React will remount the timer anyway and it will start fresh.
+  }, [riddle?._id, playtimes?.secondsPerRiddle, riddle]);
+
   if (!playtimes) {
     return <div>Sorry an error occurred: Playtime wasn't found</div>;
   }
@@ -55,6 +107,12 @@ const Playtime = () => {
   if (sum === playtimes.riddles.length) {
     return <SinglePlayed playtime={playtimes} />;
   }
+
+  // Updated handleSkip to reuse autoSkip guard
+  const handleSkip = async () => {
+    // reuse autoSkip behaviour, but call it directly so messages are consistent
+    await autoSkip();
+  };
   const handleNext = async () => {
     setProceeding(true);
     try {
@@ -62,17 +120,22 @@ const Playtime = () => {
         toast("Please enter your answer", "info");
         return;
       }
-      if (riddle?.answer.includes(value)) {
+      const accepted = getAcceptedAnswers();
+      const correct = isAnswerCorrect(value, accepted);
+      if (correct) {
         await advance({ playtimeId: playtimes?._id, result: "correct" });
         toast("Correct!", "success");
-        setValue("");
-        return;
       } else {
         await advance({ playtimeId: playtimes?._id, result: "incorrect" });
         toast("Incorrect!", "error");
-        setValue("");
-        return;
       }
+      // stop or reset timer to prevent a pending onComplete firing after we navigated
+      try {
+        timerRef.current?.stop?.();
+      } catch (err) {
+        console.error("timer stop error:", err);
+      }
+      setValue("");
     } catch (error) {
       toast("Sorry an error occured", "error");
       console.error(error);
@@ -81,16 +144,38 @@ const Playtime = () => {
     }
   };
 
-  const handleSkip = async () => {
+  // const handleSkip = async () => {
+  //   setProceeding(true);
+  //   try {
+  //     await advance({ playtimeId: playtimes?._id, result: "skipped" });
+  //     toast("Skipped!", "info");
+  //     setValue("");
+  //     return;
+  //   } catch (error) {
+  //     toast("Sorry an error occured", "error");
+  //     console.error(error);
+  //   } finally {
+  //     setProceeding(false);
+  //   }
+  // };
+
+  const handleOptionClick = async (choice: string) => {
+    setValue(choice);
     setProceeding(true);
     try {
-      await advance({ playtimeId: playtimes?._id, result: "skipped" });
-      toast("Skipped!", "info");
+      const accepted = getAcceptedAnswers();
+      const correct = isAnswerCorrect(choice, accepted);
+      if (correct) {
+        await advance({ playtimeId: playtimes?._id, result: "correct" });
+        toast("Correct!", "success");
+      } else {
+        await advance({ playtimeId: playtimes?._id, result: "incorrect" });
+        toast("Incorrect!", "error");
+      }
       setValue("");
-      return;
-    } catch (error) {
+    } catch (err) {
       toast("Sorry an error occured", "error");
-      console.error(error);
+      console.error(err);
     } finally {
       setProceeding(false);
     }
@@ -109,6 +194,7 @@ const Playtime = () => {
           </span>
           <div className="w-10/12 font-medium">
             <TimerProgressBar
+              key={riddle?._id ?? "timer"}
               ref={timerRef}
               duration={playtimes.secondsPerRiddle}
               autoStart={true}
@@ -119,8 +205,7 @@ const Playtime = () => {
               //   // console.log("remaining", remaining);
               // }}
               onComplete={() => {
-                // called when time runs out
-                // alert("time's up!");
+                autoSkip();
               }}
               showTime={true}
               fillColor="#f84565"
@@ -173,6 +258,30 @@ const Playtime = () => {
                   />
                 </div>
 
+                <div className="flex flex-col items-center w-full lg:w-9/12 mt-4">
+                  <div className="w-full mb-3">
+                    <strong className="text-sm">
+                      Or pick one (multiple choice):
+                    </strong>
+                  </div>
+                  <div className="flex flex-wrap gap-3 w-full justify-center">
+                    {riddle ? (
+                      shuffle(riddle.choices || [])?.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleOptionClick(opt)}
+                          className="px-4 py-2 rounded-md border border-primary bg-black text-primary capitalize hover:bg-primary-dul active:bg-primary-dull duration-200 hover:shadow-[0_0_20px_#f84565] active:shadow-[0_0_20px_#f84565] active:scale-95 transition font-medium cursor-pointer"
+                          disabled={proceeding}
+                        >
+                          {opt}
+                        </button>
+                      ))
+                    ) : (
+                      <LoadingDots />
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between w-full lg:w-9/12 mt-2">
                   <div />
                   <div className="flex items-center gap-x-3">
@@ -188,7 +297,7 @@ const Playtime = () => {
                       size={isMd ? "middle" : "small"}
                       loading={proceeding}
                       disabled={proceeding}
-                      className="!text-white !bg-primary flex items-center"
+                      className="!text-white !bg-primary flex items-center capitalize"
                       onClick={handleNext}
                     >
                       <span className="max-md:text-xs">Next</span>

@@ -171,6 +171,23 @@ export const TimerProgressBar = forwardRef<
     rafRef.current = requestAnimationFrame(tick);
   }, [tick]);
 
+  // add this near your other callbacks (start/pause/reset)
+  const stop = useCallback(() => {
+    // cancel any scheduled frame
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    // mark as not running
+    runningRef.current = false;
+    // clear start timestamp so future start/resume behaves correctly
+    startTimeRef.current = null;
+    // freeze current elapsed state (so UI remains where it was)
+    // derive from elapsedFraction to avoid drift
+    pausedElapsedRef.current = elapsedFraction * duration;
+    // do NOT call onComplete here
+  }, [elapsedFraction, duration]);
+
   // pause function
   const pause = useCallback(() => {
     if (!runningRef.current) return;
@@ -226,9 +243,10 @@ export const TimerProgressBar = forwardRef<
       start,
       pause,
       reset,
+      stop,
       getRemaining: () => remainingRef.current,
     }),
-    [start, pause, reset]
+    [start, pause, reset, stop]
   );
 
   // preload audio if provided

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, mutation, query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 // import { api } from "./_generated/api";
 import { computePointersFromIndex } from "./utils/fns";
 
@@ -133,17 +133,20 @@ export const advancePlaytime = mutation({
   },
 });
 
-export const getRiddles = action({
-  args: { category: v.string(), numberOfRiddles: v.number() },
-  handler: async (_, { category, numberOfRiddles }) => {
-    const res = await fetch(
-      `https://riddles-api-eight.vercel.app/${category}/${numberOfRiddles}`
-    );
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch riddles");
+export const getPlaytimeRiddlesDetails = query({
+  args: { id: v.id("playtimes") },
+  handler: async (ctx, { id }) => {
+    const playtime = await ctx.db.get(id);
+    if (!playtime) {
+      throw new Error("Playtime not found");
     }
-    const riddles = await res.json();
-    return riddles?.riddlesArray;
+
+    const details = Promise.all(
+      playtime.riddles.map(async (r) => {
+        const riddle = await ctx.db.get(r._id);
+        return riddle;
+      })
+    );
+    return details;
   },
 });

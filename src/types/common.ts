@@ -26,6 +26,7 @@ export interface PlaytimeForm {
 export interface TimerProgressBarHandle {
   start: () => void;
   pause: () => void;
+  stop: () => void;
   reset: (newDurationSeconds?: number) => void;
   getRemaining: () => number;
 }
@@ -80,6 +81,7 @@ export interface TimerProgressBarProps {
 }
 
 export interface Playtime {
+  _id: Id<"playtimes">;
   _creationTime: number;
   corrects?: string[] | undefined;
   incorrects?: string[] | undefined;

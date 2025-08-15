@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { makeTypo, morphologicalVariant, shuffle } from "./utils/riddleFns";
 
 export const createPlaytime = action({
   args: {
@@ -23,7 +24,7 @@ export const createPlaytime = action({
       name: category,
     });
 
-    const riddles = await ctx.runAction(api.playtime.getRiddles, {
+    const riddles = await ctx.runAction(api.riddles.getRiddles, {
       category,
       numberOfRiddles,
     });
@@ -31,7 +32,7 @@ export const createPlaytime = action({
     // loop through riddles and save them returning their ids
     const riddleIds = await Promise.all(
       (riddles as Array<{ riddle: string; answer: string }>).map(async (r) => {
-        const riddleId = await ctx.runMutation(api.riddles.saveRiddle, {
+        const riddleId = await ctx.runAction(api.riddles.saveRiddle, {
           riddle: {
             text: r.riddle,
             answer: r.answer,
@@ -55,5 +56,57 @@ export const createPlaytime = action({
       },
     });
     return playtimeId;
+  },
+});
+
+export const fetchRelatedWordsDatamuse = action({
+  args: {
+    word: v.string(),
+    max: v.number(),
+  },
+  handler: async (_, { word, max = 6 }): Promise<string[]> => {
+    try {
+      const resp = await fetch(
+        `https://api.datamuse.com/words?ml=${encodeURIComponent(word)}&max=${max}`
+      );
+      if (!resp.ok) return [];
+      const data: Array<{ word: string }> = await resp.json();
+      return data.map((d) => d.word);
+    } catch {
+      return [];
+    }
+  },
+});
+
+export const generateDistractors = action({
+  args: { answer: v.string(), count: v.number() },
+  handler: async (ctx, { answer, count = 3 }): Promise<string[]> => {
+    const norm = answer.trim();
+    const s = new Set<string>();
+    s.add(makeTypo(norm));
+    s.add(morphologicalVariant(norm));
+    const related = await ctx.runAction(api.actions.fetchRelatedWordsDatamuse, {
+      word: answer,
+      max: Math.max(6, count * 2),
+    });
+    for (const r of related) {
+      if (s.size >= count + 1) break;
+      if (r.toLowerCase() === norm.toLowerCase()) continue;
+      s.add(r);
+    }
+    while (s.size < count + 1) {
+      let candidate = "";
+      const vowels = "aeiou";
+      for (let i = 0; i < Math.max(1, norm.length); i++) {
+        candidate +=
+          Math.random() > 0.6
+            ? vowels[Math.floor(Math.random() * vowels.length)]
+            : String.fromCharCode(97 + Math.floor(Math.random() * 26));
+      }
+      s.add(candidate);
+    }
+    s.delete(norm);
+    const arr = Array.from(s).slice(0, count);
+    return shuffle(arr);
   },
 });
