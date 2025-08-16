@@ -15,6 +15,8 @@ import type {
 } from "convex/server";
 import type * as actions from "../actions.js";
 import type * as category from "../category.js";
+import type * as handlers_clerk from "../handlers/clerk.js";
+import type * as http from "../http.js";
 import type * as playtime from "../playtime.js";
 import type * as riddles from "../riddles.js";
 import type * as users from "../users.js";
@@ -32,6 +34,8 @@ import type * as utils_riddleFns from "../utils/riddleFns.js";
 declare const fullApi: ApiFromModules<{
   actions: typeof actions;
   category: typeof category;
+  "handlers/clerk": typeof handlers_clerk;
+  http: typeof http;
   playtime: typeof playtime;
   riddles: typeof riddles;
   users: typeof users;

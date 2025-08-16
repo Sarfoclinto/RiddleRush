@@ -5,9 +5,12 @@ export default defineSchema({
   users: defineTable({
     username: v.string(),
     email: v.optional(v.string()),
+    fullname: v.optional(v.string()),
     clerkId: v.optional(v.string()),
     image: v.optional(v.string()),
-  }).index("by_username", ["username"]),
+  })
+    .index("by_username", ["username"])
+    .index("by_clerkId", ["clerkId"]),
 
   riddles: defineTable({
     text: v.string(),
