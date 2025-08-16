@@ -27,6 +27,7 @@ export default defineSchema({
     incorrects: v.optional(v.array(v.string())),
     skipped: v.optional(v.array(v.string())),
     playing: v.boolean(),
+    completed: v.optional(v.boolean()),
     secondsPerRiddle: v.number(),
     current: v.optional(v.string()), //v.optional(v.id("riddles")),
     previous: v.optional(v.string()), //v.optional(v.id("riddles")),

@@ -42,7 +42,7 @@ const LandingPage = () => {
                 riddle?.riddle
               )}
             </span>
-            {isLoading && <LoadingDots />}
+            {isLoading && <LoadingDots color="#f84565" size={10} />}
           </span>
         ),
         children: (
@@ -111,7 +111,7 @@ const LandingPage = () => {
               icon={
                 !isLoading &&
                 (isRefetching ? (
-                  <LoadingDots />
+                  <LoadingDots color="#f84565" size={5} />
                 ) : (
                   <RotateCcwIcon
                     color="#f84565"

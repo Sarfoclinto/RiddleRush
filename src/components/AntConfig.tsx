@@ -50,6 +50,12 @@ const AntConfig = ({ children }: AntFormConfigProps) => {
             colorIcon: "white",
             colorInfo: "pink",
           },
+          Modal: {
+            contentBg: "#000000",
+            colorBorder: "#f84565",
+            headerBg: "#000000",
+            colorText: "#f84565",
+          },
         },
       }}
     >

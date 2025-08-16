@@ -1,36 +1,82 @@
 import type { HeaderPlaytime } from "@/types/common";
-import Header from "./Header";
+// import Header from "./Header";
 import { Collapse, ConfigProvider, type CollapseProps } from "antd";
-import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import ScoreBar from "./ScoreBar";
+import { XIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import LoadingDots from "./LoadingDots";
 
 type SinglePlayedProps = {
   playtime: HeaderPlaytime;
 };
 const SinglePlayed = ({ playtime }: SinglePlayedProps) => {
+  const [closing, setClosing] = useState(false);
+  const navigate = useNavigate();
   const riddleDetails = useQuery(api.playtime.getPlaytimeRiddlesDetails, {
     id: playtime._id,
   });
   const riddles: CollapseProps["items"] = useMemo(() => {
-    return riddleDetails?.map((riddle) => ({
-      key: riddle?._id,
-      label: (
-        <span className="text-primary font-medium text-pretty">
-          {riddle?.text}
-        </span>
-      ),
-      children: (
-        <span className="text-[#00ee20] flex items-center justify-center text-center w-full">
-          {riddle?.answer}
-        </span>
-      ),
-    }));
-  }, [riddleDetails]);
+    return riddleDetails?.map((riddle) => {
+      const wasCorrect = riddle?._id
+        ? playtime.corrects?.includes(riddle._id as string)
+        : false;
+      const wasWrong = riddle?._id
+        ? playtime.incorrects?.includes(riddle._id as string)
+        : false;
+      return {
+        key: riddle?._id,
+        label: (
+          <span className="text-primary font-medium w-full text-pretty">
+            {riddle?.text}
+          </span>
+        ),
+        children: (
+          <span
+            className={`${wasCorrect ? "text-[#00ee20]" : wasWrong ? "text-primary-dull" : "text-[#f59e0b]"} text-pretty flex items-center justify-center text-center w-full`}
+          >
+            {riddle?.answer}
+          </span>
+        ),
+      };
+    });
+  }, [playtime.corrects, playtime.incorrects, riddleDetails]);
+
+  const completeAndClose = useMutation(api.playtime.completePlaytime);
+
+  const handleClose = async () => {
+    try {
+      setClosing(true);
+      await completeAndClose({ playtimeId: playtime._id });
+      setClosing(false);
+      navigate("/home");
+    } catch (error) {
+      console.error("error closing playtime: ", error);
+    }
+  };
   return (
-    <div className="flex flex-col gap-y-3 items-center justify-center w-full h-full text-xl font-medium text-primary">
-      <Header playtime={playtime} showProgress={false} />
+    <div className="relative flex flex-col gap-y-3 items-center lg:justify-center w-full h-full text-xl font-medium text-primary overflow-auto">
+      {/* <Header playtime={playtime} showProgress={false} /> */}
+      <button
+        onClick={handleClose}
+        className="absolute cursor-pointer transition-all duration-100 max-md:-top-1 active:bg-primary/30 max-md:right-2 top-0 right-0 max-md:p-2.5 active:shadow-none hover:scale-95 p-3 rounded-full shadow-primary shadow bg-black text-primary flex items-center justify-center"
+      >
+        {closing ? (
+          <LoadingDots inline color="#f84565" size={10} />
+        ) : (
+          <XIcon className="max-md:size-3" />
+        )}
+      </button>
       <span>Completed</span>
+      <div className="max-w-11/12 w-11/12 max-md:w-11/12 mb-5">
+        <ScoreBar
+          correct={playtime.corrects?.length || 0}
+          incorrect={playtime.incorrects?.length || 0}
+          skipped={playtime.skipped?.length || 0}
+        />
+      </div>
       <ConfigProvider
         theme={{
           components: {
@@ -40,7 +86,7 @@ const SinglePlayed = ({ playtime }: SinglePlayedProps) => {
           },
         }}
       >
-        <div className="max-w-11/12 w-11/12 max-md:w-11/12 flex flex-col ">
+        <div className="max-w-[95%] w-[95%] max-md:[95%] flex flex-col items-center justify-center max-h-[calc(100dvh-35dvh)] overflow-y-auto scroll-smooth scrollbar">
           <Collapse
             items={riddles}
             accordion

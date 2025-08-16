@@ -125,7 +125,7 @@ const Config = () => {
             <InputNumber
               variant="outlined"
               className="!bg-black !text-primary !my-0 !w-full !shadow-none"
-              max={20}
+              max={61}
               min={1}
             />
           </Form.Item>

@@ -138,3 +138,31 @@ export type HeaderPlaytime = Playtime & { user: User | null };
 //     username: string;
 //   };
 // };
+
+export type Segment = {
+  key: string; // unique key
+  label?: string; // shown in legend / aria
+  value: number; // numeric value (>= 0)
+  color?: string; // CSS color
+};
+
+export interface ScoreBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  // Option A: simple counts (preferred for your use case)
+  correct?: number;
+  incorrect?: number;
+  skipped?: number;
+
+  // Option B: custom segments array (overrides counts if provided)
+  segments?: Segment[];
+
+  // visuals
+  height?: number | string; // px number or CSS value (default "12px")
+  showPercentInside?: boolean; // show % inside each segment (default true)
+  showLegend?: boolean; // show legend with counts (default true)
+  animate?: boolean; // animate width changes (default true)
+  rounded?: boolean; // rounded corners (default true)
+  className?: string;
+  style?: React.CSSProperties;
+  // accessibility
+  ariaLabel?: string; // default: "Score breakdown"
+}

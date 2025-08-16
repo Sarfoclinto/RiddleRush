@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { MenuIcon, TicketPlus, XIcon } from "lucide-react";
+import { HouseIcon, MenuIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { useClerk, UserButton, useUser } from "@clerk/clerk-react";
 import { assets } from "@/assets/assets";
@@ -52,10 +52,10 @@ const Navbar = () => {
           <UserButton>
             <UserButton.MenuItems>
               <UserButton.Action
-                label="My Bookings"
-                labelIcon={<TicketPlus width={15} />}
+                label="Rooms"
+                labelIcon={<HouseIcon width={15} />}
                 onClick={() => {
-                  navigate("/my-bookings");
+                  navigate("/rooms");
                 }}
               />
             </UserButton.MenuItems>

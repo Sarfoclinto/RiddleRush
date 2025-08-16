@@ -150,3 +150,16 @@ export const getPlaytimeRiddlesDetails = query({
     return details;
   },
 });
+
+export const completePlaytime = mutation({
+  args: {
+    playtimeId: v.id("playtimes"),
+  },
+  handler: async (ctx, { playtimeId }) => {
+    const playtime = await ctx.db.get(playtimeId);
+    if (!playtime) {
+      throw new Error("Playtime not found");
+    }
+    await ctx.db.patch(playtimeId, { completed: true, playing: false });
+  },
+});

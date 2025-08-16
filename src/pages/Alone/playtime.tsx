@@ -2,7 +2,7 @@ import LoadingDots from "@/components/LoadingDots";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TimerProgressBarHandle } from "@/types/common";
 import TimerProgressBar from "@/components/TImeProgressBar";
@@ -11,6 +11,8 @@ import useScreenSize from "@/hooks/useScreenSize";
 import { ChevronRightIcon } from "lucide-react";
 import SinglePlayed from "@/components/SinglePlayed";
 import { isAnswerCorrect, shuffle } from "@/utils/riddleFns";
+import { useDisclosure } from "@/hooks/useDisclosure";
+import DeletePlaytimeModal from "./components/DeletePlaytimeModal";
 // import tick from "/tick.mp3";
 
 const Playtime = () => {
@@ -20,8 +22,10 @@ const Playtime = () => {
   const [value, setValue] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
   const [proceeding, setProceeding] = useState(false);
+  const [closing, setClosing] = useState(false);
   const skipInProgressRef = useRef<boolean>(false); // guard so we don't double-skip
-
+  const navigate = useNavigate();
+  const { close, isOpen, open } = useDisclosure();
   const toast = useCallback(
     (message?: string, type?: "success" | "error" | "info") => {
       messageApi.open({
@@ -37,14 +41,6 @@ const Playtime = () => {
     id ? { id: id as Id<"playtimes"> } : "skip"
   );
 
-  const sum = useMemo(() => {
-    return (
-      (playtimes?.corrects?.length || 0) +
-      (playtimes?.incorrects?.length || 0) +
-      (playtimes?.skipped?.length || 0)
-    );
-  }, [playtimes]);
-
   const riddle = useQuery(
     api.riddles.getRiddleById,
     playtimes && playtimes.current
@@ -53,6 +49,13 @@ const Playtime = () => {
   );
 
   const advance = useMutation(api.playtime.advancePlaytime);
+  const sum = useMemo(() => {
+    return (
+      (playtimes?.corrects?.length || 0) +
+      (playtimes?.incorrects?.length || 0) +
+      (playtimes?.skipped?.length || 0)
+    );
+  }, [playtimes]);
 
   const getAcceptedAnswers = (): string[] => {
     const raw = riddle?.answer;
@@ -100,14 +103,31 @@ const Playtime = () => {
     // If you use key remount (below), React will remount the timer anyway and it will start fresh.
   }, [riddle?._id, playtimes?.secondsPerRiddle, riddle]);
 
+  const completeAndClose = useMutation(api.playtime.completePlaytime);
+
   if (!playtimes) {
-    return <div>Sorry an error occurred: Playtime wasn't found</div>;
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center text-primary">
+        <LoadingDots dotCount={5} color="#f84565" size={isMd ? 30 : 20} />
+      </div>
+    );
   }
 
   if (sum === playtimes.riddles.length) {
     return <SinglePlayed playtime={playtimes} />;
   }
 
+  const handleClose = async () => {
+    try {
+      setClosing(true);
+      await completeAndClose({ playtimeId: playtimes._id });
+      setClosing(false);
+      close();
+      navigate("/home");
+    } catch (error) {
+      console.error("error closing playtime: ", error);
+    }
+  };
   // Updated handleSkip to reuse autoSkip guard
   const handleSkip = async () => {
     // reuse autoSkip behaviour, but call it directly so messages are consistent
@@ -197,7 +217,7 @@ const Playtime = () => {
               key={riddle?._id ?? "timer"}
               ref={timerRef}
               duration={playtimes.secondsPerRiddle}
-              autoStart={true}
+              autoStart={false}
               muted={true}
               // tickSoundUrl={tick}
               // onTick={(remaining) => {
@@ -205,7 +225,7 @@ const Playtime = () => {
               //   // console.log("remaining", remaining);
               // }}
               onComplete={() => {
-                autoSkip();
+                // autoSkip();
               }}
               showTime={true}
               fillColor="#f84565"
@@ -277,13 +297,22 @@ const Playtime = () => {
                         </button>
                       ))
                     ) : (
-                      <LoadingDots />
+                      <LoadingDots color="#f84565" size={10} />
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between w-full lg:w-9/12 mt-2">
-                  <div />
+                  <Button
+                    size={isMd ? "middle" : "small"}
+                    variant="outlined"
+                    onClick={open}
+                    loading={closing}
+                    disabled={closing}
+                    className="!text-white !bg-black "
+                  >
+                    <span className="max-md:text-xs">Quit</span>
+                  </Button>
                   <div className="flex items-center gap-x-3">
                     <Button
                       size={isMd ? "middle" : "small"}
@@ -307,13 +336,19 @@ const Playtime = () => {
                 </div>
               </div>
             ) : (
-              <LoadingDots />
+              <LoadingDots color="#f84565" size={30} />
             )}
           </div>
         </div>
       ) : (
-        <LoadingDots />
+        <LoadingDots color="#f84565" size={30} />
       )}
+      <DeletePlaytimeModal
+        action={handleClose}
+        close={close}
+        isOpen={isOpen}
+        loading={closing}
+      />
     </div>
   );
 };
