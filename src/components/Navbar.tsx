@@ -31,7 +31,7 @@ const Navbar = () => {
           className="md:hidden absolute top-6 right-6 w-6 h-6 cursor-pointer"
           onClick={toggleMenu}
         />
-        <Link onClick={linkOnClick} to="/">
+        <Link onClick={linkOnClick} to="/home">
           Home
         </Link>
         <Link onClick={linkOnClick} to="/rooms">
@@ -49,17 +49,19 @@ const Navbar = () => {
             Login
           </button>
         ) : (
-          <UserButton>
-            <UserButton.MenuItems>
-              <UserButton.Action
-                label="Rooms"
-                labelIcon={<HouseIcon width={15} />}
-                onClick={() => {
-                  navigate("/rooms");
-                }}
-              />
-            </UserButton.MenuItems>
-          </UserButton>
+          <div className="shadow rounded-full p-2 shadow-primary">
+            <UserButton>
+              <UserButton.MenuItems>
+                <UserButton.Action
+                  label="Rooms"
+                  labelIcon={<HouseIcon width={15} />}
+                  onClick={() => {
+                    navigate("/rooms");
+                  }}
+                />
+              </UserButton.MenuItems>
+            </UserButton>
+          </div>
         )}
       </div>
 

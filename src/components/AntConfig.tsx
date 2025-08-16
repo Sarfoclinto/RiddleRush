@@ -27,6 +27,7 @@ const AntConfig = ({ children }: AntFormConfigProps) => {
             colorBgBase: "black",
             activeBorderColor: "#f84565",
             hoverBorderColor: "#f84565",
+            // colorBgContainerDisabled: "red",
           },
           InputNumber: {
             colorBgBase: "black",

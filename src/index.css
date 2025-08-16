@@ -151,9 +151,9 @@ body {
 }
 
 /* Add these styles to a global stylesheet or a CSS module */
-.loading-dots__root {
-  /* container baseline — inline styles control layout */
-}
+/* .loading-dots__root {
+  container baseline — inline styles control layout
+} */
 
 .loading-dots__dot {
   /* baseline so variant animations apply */

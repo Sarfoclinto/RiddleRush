@@ -11,7 +11,17 @@ export const getAuthUser = async (ctx: QueryCtx | MutationCtx) => {
   if (!identity) {
     throw new Error("Not authenticated");
   }
-  return identity;
+  // Fetch the current user
+  const currentUser = await ctx.db
+    .query("users")
+    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+    .first();
+
+  if (!currentUser) {
+    throw new Error("User not found: Unable to fetch auth user.");
+  }
+
+  return currentUser;
 };
 
 export const getUserByUsername = query({

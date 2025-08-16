@@ -7,17 +7,27 @@ import { removeFromStorage, saveToStorage } from "@/services/storage";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/clerk-react";
 
 const Config = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+  const { isSignedIn, user } = useUser();
+  
   const options = cat.map((ct) => ({
     label: capitalize(ct),
     value: ct.toLowerCase(),
   }));
+
+  useEffect(() => {
+    if (isSignedIn && user) {
+      form.setFieldsValue({
+        username: user.username || undefined,
+      });
+    }
+  }, [form, isSignedIn, user, user?.username]);
 
   const createPlaytime = useAction(api.actions.createPlaytime);
 
@@ -59,6 +69,7 @@ const Config = () => {
           >
             <Input
               variant="outlined"
+              disabled={isSignedIn && !!user?.username}
               className="!bg-black !text-primary !my-0 !shadow-none"
               placeholder="Username eg.Sherlock, LoneWolf"
             />
