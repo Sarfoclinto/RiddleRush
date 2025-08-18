@@ -1,4 +1,4 @@
-import { Id } from "../_generated/dataModel";
+import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { computeRiddlePointersFromIndex } from "./fns";
 
