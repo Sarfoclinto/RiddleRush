@@ -110,3 +110,51 @@ export const generateDistractors = action({
     return shuffle(arr);
   },
 });
+
+export const loadRoomRiddles = action({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const { room, settings } = await ctx.runQuery(api.rooms.getRoomById, {
+      id: roomId,
+    });
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    const riddles = await ctx.runAction(api.riddles.getRiddles, {
+      category: settings?.categoryName,
+      numberOfRiddles: settings?.numberOfRiddles,
+    });
+
+    // loop through riddles and save them returning their ids
+    const riddleIds = await Promise.all(
+      (riddles as Array<{ riddle: string; answer: string }>).map(async (r) => {
+        const riddleId = await ctx.runAction(api.riddles.saveRiddle, {
+          riddle: {
+            text: r.riddle,
+            answer: r.answer,
+            category: settings.riddlesCategory,
+          },
+        });
+        return riddleId;
+      })
+    );
+
+    // Convert riddle IDs to the format expected by the schema
+    const riddleObjects = riddleIds.map((id) => ({
+      _id: id,
+    }));
+
+    const playtimeId = await ctx.runMutation(
+      api.roomPlaytime.createRoomPlaytime,
+      {
+        roomId,
+        riddles: riddleObjects,
+      }
+    );
+
+    await ctx.runMutation(api.rooms.updateRoomPlaytimeId, {
+      roomPlaytimeId: playtimeId,
+      roomId,
+    });
+  },
+});

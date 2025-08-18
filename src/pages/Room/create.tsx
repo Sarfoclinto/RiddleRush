@@ -1,10 +1,13 @@
 import { Button, Form, Input, InputNumber, message, Radio } from "antd";
+import { api } from "../../../convex/_generated/api";
+import { useMutation } from "convex/react";
 import { ArrowRightIcon } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const CreateRoom = () => {
   const [messageApi, contextHolder] = message.useMessage();
+  const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
   const toast = useCallback(
@@ -16,12 +19,32 @@ const CreateRoom = () => {
     },
     [messageApi]
   );
-  const onFinish = (values: unknown) => {
-    console.log("form values: ", values);
-    navigate(`/room/settings/${45}`);
+
+  const createRoom = useMutation(api.rooms.createRoom);
+  const onFinish = async (values: {
+    name: string;
+    status: "public" | "private";
+    maxPlayers: number;
+  }) => {
+    setCreating(true);
+    try {
+      const roomId = await createRoom({
+        name: values.name || undefined,
+        status: values.status,
+        maxPlayers: values.maxPlayers,
+      });
+      if (roomId) {
+        navigate(`/room/settings/${roomId}`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast("Something went wrong", "error");
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const onFinishFailed = () => {
+  const onFinishFailed = async () => {
     toast("Please fill all required fields", "error");
   };
   return (
@@ -48,7 +71,7 @@ const CreateRoom = () => {
           </Form.Item>
 
           <Form.Item
-            name="capacity"
+            name="maxPlayers"
             rules={[{ required: true, message: "Room max size is required" }]}
             label={<span className="font-medium !my-0">Room max capacity</span>}
             className="!my-0 !mb-3"
@@ -77,6 +100,9 @@ const CreateRoom = () => {
 
           <Button
             block
+            loading={creating}
+            disabled={creating}
+            type="primary"
             className="!bg-[#f84565] hover:!bg-primary-dull !border-none !outline-none !text-black mt-5 !flex !items-center"
             htmlType="submit"
           >

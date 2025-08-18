@@ -200,9 +200,6 @@ const Playtime = () => {
       setProceeding(false);
     }
   };
-
-  console.log("playtimes: ", playtimes);
-  console.log("riddle: ", riddle);
   return (
     <div className="flex w-full flex-col h-full items-center justify-center">
       {contextHolder}
@@ -225,7 +222,7 @@ const Playtime = () => {
               //   // console.log("remaining", remaining);
               // }}
               onComplete={() => {
-                // autoSkip();
+                autoSkip();
               }}
               showTime={true}
               fillColor="#f84565"
@@ -284,7 +281,7 @@ const Playtime = () => {
                       Or pick one (multiple choice):
                     </strong>
                   </div>
-                  <div className="flex flex-wrap gap-3 w-full justify-center">
+                  <div className="flex flex-wrap gap-3 w-full justify-center max-h-[50dvh] overflow-y-auto scroll-smooth scrollbar">
                     {riddle ? (
                       shuffle(riddle.choices || [])?.map((opt, i) => (
                         <button

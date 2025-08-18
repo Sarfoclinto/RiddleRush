@@ -56,7 +56,7 @@ const Navbar = () => {
                   label="Rooms"
                   labelIcon={<HouseIcon width={15} />}
                   onClick={() => {
-                    navigate("/rooms");
+                    navigate("/my-rooms");
                   }}
                 />
               </UserButton.MenuItems>

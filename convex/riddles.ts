@@ -82,10 +82,10 @@ export const getRiddleByStringId = query({
 });
 
 export const getRiddles = action({
-  args: { category: v.string(), numberOfRiddles: v.number() },
+  args: { category: v.optional(v.string()), numberOfRiddles: v.number() },
   handler: async (_, { category, numberOfRiddles }) => {
     const res = await fetch(
-      `https://riddles-api-eight.vercel.app/${category}/${numberOfRiddles}`
+      `https://riddles-api-eight.vercel.app/${category ?? "funny"}/${numberOfRiddles}`
     );
 
     if (!res.ok) {

@@ -43,7 +43,6 @@ const Config = () => {
       });
       if (playtimeId) {
         saveToStorage("playtimeId", playtimeId);
-        console.log("Created playtime:", playtimeId);
         navigate(`/alone/playtime/${playtimeId}`);
       }
     } catch (error) {

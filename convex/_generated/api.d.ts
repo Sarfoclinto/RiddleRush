@@ -19,8 +19,11 @@ import type * as handlers_clerk from "../handlers/clerk.js";
 import type * as http from "../http.js";
 import type * as playtime from "../playtime.js";
 import type * as riddles from "../riddles.js";
+import type * as roomPlaytime from "../roomPlaytime.js";
+import type * as rooms from "../rooms.js";
 import type * as users from "../users.js";
 import type * as utils_fns from "../utils/fns.js";
+import type * as utils_playtimeHelpers from "../utils/playtimeHelpers.js";
 import type * as utils_riddleFns from "../utils/riddleFns.js";
 
 /**
@@ -38,8 +41,11 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   playtime: typeof playtime;
   riddles: typeof riddles;
+  roomPlaytime: typeof roomPlaytime;
+  rooms: typeof rooms;
   users: typeof users;
   "utils/fns": typeof utils_fns;
+  "utils/playtimeHelpers": typeof utils_playtimeHelpers;
   "utils/riddleFns": typeof utils_riddleFns;
 }>;
 export declare const api: FilterApi<

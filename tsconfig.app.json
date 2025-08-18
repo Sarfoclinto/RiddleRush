@@ -18,7 +18,8 @@
     // aliases
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "myconvex/*": ["./convex/*"]
     },
 
     /* Linting */

@@ -57,6 +57,9 @@ const AntConfig = ({ children }: AntFormConfigProps) => {
             headerBg: "#000000",
             colorText: "#f84565",
           },
+          Tooltip: {
+            colorText: "#ffffff",
+          },
         },
       }}
     >

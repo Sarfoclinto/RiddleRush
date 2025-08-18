@@ -1,12 +1,17 @@
 import { Form, message, InputNumber, Select, Button } from "antd";
-import { useNavigate } from "react-router-dom";
-import { useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useState } from "react";
 import { cat } from "@/assets/data";
 import { capitalize } from "@/utils/fns";
 import { ArrowRightIcon } from "lucide-react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
 
 const RoomSettings = () => {
   const [messageApi, contextHolder] = message.useMessage();
+  const [setting, setSetting] = useState(false);
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const options = cat.map((ct) => ({
@@ -16,8 +21,10 @@ const RoomSettings = () => {
 
   const skipOptions = [
     { label: "Use new", value: "new" },
-    { label: "Pass to neext user", value: "pass" },
+    { label: "Pass to next user", value: "pass" },
   ];
+
+  const createSetting = useMutation(api.rooms.createRoomSettings);
 
   const toast = useCallback(
     (message?: string, type?: "success" | "error" | "info") => {
@@ -28,9 +35,30 @@ const RoomSettings = () => {
     },
     [messageApi]
   );
-  const onFinish = (values: unknown) => {
-    console.log("form values: ", values);
-    navigate(`/room/settings/${45}`);
+  const onFinish = async (values: {
+    numberOfRiddles: number;
+    category: string;
+    timeSpan: number;
+    skipBehaviour: "pass" | "new";
+  }) => {
+    setSetting(true);
+    try {
+      const res = await createSetting({
+        numberOfRiddles: values.numberOfRiddles,
+        riddlesCategory: values.category,
+        riddleTimeSpan: values.timeSpan,
+        room: id as Id<"rooms">,
+        skipBehaviour: values.skipBehaviour,
+      });
+      console.log("setting res: ", res);
+      if (res) {
+        navigate(`/room/load/${res._id}`);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSetting(false);
+    }
   };
 
   const onFinishFailed = () => {
@@ -137,6 +165,9 @@ const RoomSettings = () => {
 
           <Button
             block
+            loading={setting}
+            disabled={setting}
+            type="primary"
             className="!bg-[#f84565] hover:!bg-primary-dull !border-none !outline-none !text-black mt-5 !flex !items-center"
             htmlType="submit"
           >
@@ -149,3 +180,16 @@ const RoomSettings = () => {
   );
 };
 export default RoomSettings;
+
+
+export interface res {
+  _id: Id<"rooms">;
+  _creationTime: number;
+  name?: string | undefined;
+  playtimeId?: Id<"roomPlaytimes"> | undefined;
+  startUser?: Id<"users"> | undefined;
+  code: string;
+  hostId: Id<"users">;
+  status: "public" | "private";
+  maxPlayers: number;
+}

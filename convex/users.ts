@@ -36,6 +36,29 @@ export const getUserByUsername = query({
   },
 });
 
+export const getUserById = query({
+  args: { id: v.id("users") },
+  handler: async (ctx, { id }) => {
+    const user = await ctx.db.get(id);
+    if (!user) throw new Error("User not found");
+    return user;
+  },
+});
+
+export const getUserByClerkId = query({
+  args: { clerkId: v.optional(v.string()) },
+  handler: async (ctx, { clerkId }) => {
+    if (!clerkId) {
+      return null;
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", clerkId))
+      .first();
+    return user;
+  },
+});
+
 export const createUserByUsername = mutation({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
@@ -77,5 +100,37 @@ export const createClerkUser = mutation({
       username: username,
     });
     return userId;
+  },
+});
+
+export const setPlayerReady = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    ready: v.boolean(),
+  },
+  handler: async (ctx, { roomId, userId, ready }) => {
+    // find the player row
+    const rows = await ctx.db
+      .query("roomPlayers")
+      .filter((q) => q.eq(q.field("roomId"), roomId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+
+    if (rows.length === 0) throw new Error("Player not in room");
+    const row = rows[0];
+
+    await ctx.db.patch(row._id, { ready });
+
+    // return snapshot for client convenience
+    const players = await ctx.db
+      .query("roomPlayers")
+      .filter((q) => q.eq(q.field("roomId"), roomId))
+      .collect();
+
+    return {
+      ok: true,
+      players: players.map((p) => ({ userId: p.userId, ready: !!p.ready })),
+    };
   },
 });
