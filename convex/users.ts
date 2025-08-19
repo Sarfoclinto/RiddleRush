@@ -134,3 +134,63 @@ export const setPlayerReady = mutation({
     };
   },
 });
+
+export const myRooms = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthUser(ctx);
+    if (!user) throw new Error("User not found");
+    // console.log("user found")
+    const rooms = await ctx.db
+      .query("rooms")
+      .withIndex("by_user", (q) => q.eq("hostId", user._id))
+      .collect();
+
+    // sort rooms such that the recently created(_creationTime) comes first
+    rooms.sort((a, b) => b._creationTime - a._creationTime);
+    return rooms;
+  },
+});
+
+export const requestRoom = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const user = await getAuthUser(ctx);
+    const room = await ctx.db
+      .query("rooms")
+      .withIndex("by_user_code", (q) => q.eq("code", code))
+      .first();
+    if (!room) return { ok: false, message: "Room not found" };
+
+    const existing = await ctx.db
+      .query("roomRequests")
+      .withIndex("by_userId", (q) =>
+        q.eq("userId", user._id).eq("roomId", room._id)
+      )
+      .first();
+    if (existing) {
+      return {
+        ok: false,
+        message: "You have already requested this room",
+      };
+    }
+
+    if (room.hostId === user._id) {
+      return { ok: false, message: "You own the room already" };
+    }
+
+    await ctx.db.insert("roomRequests", {
+      roomId: room._id,
+      status: "pending",
+      userId: user._id,
+    });
+
+    await ctx.db.insert("notification", {
+      creator: user._id,
+      reciever: room.hostId,
+      type: "request",
+    });
+
+    return { ok: true, message: "Room request sent" };
+  },
+});

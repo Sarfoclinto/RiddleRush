@@ -53,6 +53,8 @@ export default defineSchema({
     maxPlayers: v.number(),
     playtimeId: v.optional(v.id("roomPlaytimes")),
     startUser: v.optional(v.id("users")),
+    playing: v.boolean(),
+    playersCount: v.optional(v.number()), // denormalized
   })
     .index("by_status", ["status"])
     .index("by_user", ["hostId"])
@@ -86,7 +88,6 @@ export default defineSchema({
       )
     ),
 
-    playing: v.boolean(),
     completed: v.optional(v.boolean()),
 
     currentRiddle: v.optional(v.id("riddles")),
@@ -100,6 +101,7 @@ export default defineSchema({
   })
     .index("by_current", ["currentRiddle", "currentUser"])
     .index("by_room", ["roomId"]),
+
   roomPlayers: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),
@@ -115,5 +117,15 @@ export default defineSchema({
       v.literal("accepted"),
       v.literal("rejected")
     ),
-  }).index("by_roomId", ["roomId", "userId"]),
+  })
+    .index("by_roomId", ["roomId", "userId"])
+    .index("by_userId", ["userId", "roomId"]),
+
+  notification: defineTable({
+    creator: v.id("users"),
+    reciever: v.id("users"),
+    type: v.union(v.literal("request"), v.literal("accepted")),
+  })
+    .index("by_creator", ["creator"])
+    .index("by_reciever", ["reciever"]),
 });

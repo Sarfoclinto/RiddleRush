@@ -10,7 +10,9 @@ import Playtime from "./pages/Alone/playtime";
 import CreateRoom from "./pages/Room/create";
 import RoomSettings from "./pages/Room/settings";
 import LoadRiddles from "./pages/Room/load";
-import RoomPlayers from "./pages/Room/players";
+import RoomPlayers from "./pages/Room/details";
+import MyRooms from "./pages/Rooms/my-rooms";
+import JoinRoom from "./pages/Room/join";
 
 function App() {
   const queryClient = new QueryClient();
@@ -31,7 +33,11 @@ function App() {
             <Route path="/room/create" element={<CreateRoom />} />
             <Route path="/room/settings/:id" element={<RoomSettings />} />
             <Route path="/room/load/:id" element={<LoadRiddles />} />
-            <Route path="/room/players/:id" element={<RoomPlayers />} />
+            <Route path="/room/details/:id" element={<RoomPlayers />} />
+            <Route path="/room/join" element={<JoinRoom />} />
+
+            {/* me */}
+            <Route path="/me/my-rooms" element={<MyRooms />} />
           </Route>
         </Routes>
       </QueryClientProvider>

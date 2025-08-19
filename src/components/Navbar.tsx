@@ -53,10 +53,10 @@ const Navbar = () => {
             <UserButton>
               <UserButton.MenuItems>
                 <UserButton.Action
-                  label="Rooms"
+                  label="My Rooms"
                   labelIcon={<HouseIcon width={15} />}
                   onClick={() => {
-                    navigate("/my-rooms");
+                    navigate("/me/my-rooms");
                   }}
                 />
               </UserButton.MenuItems>

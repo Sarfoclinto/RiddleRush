@@ -76,7 +76,10 @@ const LoadRiddles = () => {
             </Tooltip>
           </div>
           <div className="max-md:pt-15 pt-3 text-blue-500 font-medium">
-            <Link to={`/room/players/${id}`}>See room page</Link>
+            <Link to={`/room/details/${id}`}>See room page</Link>
+          </div>
+          <div className="mt-3 text-primary font-medium py-1.5 px-2 rounded bg-primary/20">
+            <Link to={`/me/my-rooms`}>View my rooms</Link>
           </div>
         </div>
       )}

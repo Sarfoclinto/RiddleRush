@@ -33,7 +33,6 @@ export const createRoomPlaytime = mutation({
       riddles: newriddles,
       play: undefined,
 
-      playing: true,
       completed: false,
 
       currentRiddle,
@@ -93,11 +92,12 @@ export const onStartGame = mutation({
 
     // 3) update roomPlaytime with computed user pointers
     await ctx.db.patch(room?.playtimeId, {
-      playing: true,
       currentUser: pointers.currentUser,
       previousUser: pointers.previousUser,
       nextUser: pointers.nextUser,
     });
+
+    await ctx.db.patch(room._id, { playing: true });
 
     return {
       ok: true,
@@ -123,9 +123,9 @@ export const advanceRoomPlaytime = mutation({
     const playtime = await ctx.db.get(playtimeId);
     if (!playtime) throw new Error("Playtime not found");
 
-    if (!playtime.playing) {
-      return { ok: false, message: "Playtime is not playing" };
-    }
+    // if (!playtime.playing) {
+    //   return { ok: false, message: "Playtime is not playing" };
+    // }
 
     // 2) load players for this room (to rotate turns)
     const playersQuery = await ctx.db

@@ -41,6 +41,7 @@ export const createRoom = mutation({
       name,
       hostId: user._id,
       code,
+      playing: false,
     });
 
     return roomId;
@@ -222,8 +223,8 @@ export const rejectRoomRequest = mutation({
 export const getRoomPlayers = query({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, { roomId }) => {
-    const user = await getAuthUser(ctx);
     const room = await ctx.db.get(roomId);
+    const user = await getAuthUser(ctx);
     if (!room) {
       throw new Error("Room not found");
     }
@@ -235,7 +236,7 @@ export const getRoomPlayers = query({
       .filter((q) => q.eq(q.field("roomId"), roomId))
       .collect();
 
-    const playerDetials = Promise.all(
+    const playerDetials = await Promise.all(
       players.map(async (pl) => {
         const user = await ctx.db.get(pl.userId);
         return {
@@ -244,6 +245,111 @@ export const getRoomPlayers = query({
         };
       })
     );
-    return await playerDetials;
+    return playerDetials;
   },
 });
+
+export const getPublicRooms = query({
+  args: {userId: v.optional(v.id("users"))},
+  handler: async (ctx) => {
+    const user = await getAuthUser(ctx);
+    // 1) fetch public rooms
+    const rooms = await ctx.db
+      .query("rooms")
+      .withIndex("by_status", (q) => q.eq("status", "public"))
+      .collect();
+
+    const roomsWithPlaytime = rooms.filter((r) => !!r.playtimeId);
+    if (roomsWithPlaytime.length === 0) return [];
+
+    // 2) Compute noOfPlayers:
+    //    - use room.playersCount when present
+    //    - otherwise, count roomPlayers for that room (in parallel for the subset)
+    const countsByRoom = new Map<string, number>();
+    const roomsMissingCount = rooms.filter((r) => r.playersCount == null);
+
+    // For rooms with denormalized playersCount, use that
+    for (const r of rooms) {
+      if (typeof r.playersCount === "number") {
+        countsByRoom.set(r._id, r.playersCount);
+      }
+    }
+
+    // For rooms missing playersCount, count via roomPlayers (parallel)
+    if (roomsMissingCount.length > 0) {
+      const missingCounts = await Promise.all(
+        roomsMissingCount.map(async (room) => {
+          const players = await ctx.db
+            .query("roomPlayers")
+            .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+            .collect();
+          return { roomId: room._id, count: players.length };
+        })
+      );
+      missingCounts.forEach((c) => countsByRoom.set(c.roomId, c.count));
+    }
+
+    // 3) Fetch user's requests for these rooms.
+    // Try to fetch in bulk using an index 'by_userId' (fast). If that index
+    // doesn't exist, fall back to per-room parallel queries.
+    const requestStatusByRoom = new Map<string, string>();
+
+    const roomIds = rooms.map((r) => r._id);
+
+    try {
+      // bulk fetch: all requests for this user (requires index "by_userId")
+      const allUserRequests = await ctx.db
+        .query("roomRequests")
+        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .collect();
+
+      for (const req of allUserRequests) {
+        // only care about requests that belong to rooms in our list
+        if (roomIds.includes(req.roomId)) {
+          requestStatusByRoom.set(req.roomId, req.status);
+        }
+      }
+
+      // mark any rooms without a request as "none"
+      for (const id of roomIds) {
+        if (!requestStatusByRoom.has(id)) requestStatusByRoom.set(id, "none");
+      }
+    } catch (err) {
+      // likely the 'by_userId' index does not exist; fall back to per-room queries
+      console.error(err);
+      const perRoom = await Promise.all(
+        rooms.map(async (room) => {
+          const req = await ctx.db
+            .query("roomRequests")
+            .withIndex("by_roomId", (q) =>
+              q.eq("roomId", room._id).eq("userId", user._id)
+            )
+            .first();
+          return { roomId: room._id, status: req?.status ?? "none" };
+        })
+      );
+      perRoom.forEach((r) => requestStatusByRoom.set(r.roomId, r.status));
+    }
+
+    // 4) Build result: remove any playtime references (none needed), include playing & noOfPlayers & request
+    const result = rooms.map((room) => {
+      return {
+        _id: room._id,
+        code: room.code,
+        name: room.name,
+        hostId: room.hostId,
+        status: room.status,
+        maxPlayers: room.maxPlayers,
+        startUser: room.startUser,
+        // playing is now on the room itself
+        playing: !!room.playing,
+        noOfPlayers: countsByRoom.get(room._id) ?? 0,
+        request: requestStatusByRoom.get(room._id) ?? "none",
+      };
+    });
+
+    return result;
+  },
+});
+
+

@@ -28,6 +28,14 @@ const Home = () => {
       openSignIn();
     }
   };
+  const onJoinRoom = () => {
+    if (isSignedIn) {
+      navigate("/room/join");
+    } else {
+      toast("Please sign in first", "info");
+      openSignIn();
+    }
+  };
   return (
     <div className="relative min-h-full h-full overflow-hidden">
       <Particles />
@@ -49,7 +57,10 @@ const Home = () => {
           >
             Create Room
           </button>
-          <button className="border-primary border w-fit flex items-center justify-center gap-2 mb-5 px-20 sm:py-3 py-2 sm:px-16 hover:bg-primary-dull active:bg-primary-dull duration-200 hover:shadow-[0_0_20px_#f84565] active:shadow-[0_0_20px_#f84565] active:scale-95 transition rounded-full font-medium cursor-pointer">
+          <button
+            onClick={onJoinRoom}
+            className="border-primary border w-fit flex items-center justify-center gap-2 mb-5 px-20 sm:py-3 py-2 sm:px-16 hover:bg-primary-dull active:bg-primary-dull duration-200 hover:shadow-[0_0_20px_#f84565] active:shadow-[0_0_20px_#f84565] active:scale-95 transition rounded-full font-medium cursor-pointer"
+          >
             Join room
           </button>
         </div>

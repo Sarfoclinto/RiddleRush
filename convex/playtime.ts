@@ -141,7 +141,7 @@ export const getPlaytimeRiddlesDetails = query({
       throw new Error("Playtime not found");
     }
 
-    const details = Promise.all(
+    const details =await Promise.all(
       playtime.riddles.map(async (r) => {
         const riddle = await ctx.db.get(r._id);
         return riddle;
