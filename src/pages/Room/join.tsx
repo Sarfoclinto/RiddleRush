@@ -2,7 +2,7 @@ import LoadingDots from "@/components/LoadingDots";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useCallback, useState } from "react";
 import { api } from "../../../convex/_generated/api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SearchIcon } from "lucide-react";
 import { Avatar, Button, message, Modal } from "antd";
 import useScreenSize from "@/hooks/useScreenSize";
@@ -15,16 +15,20 @@ const JoinRoom = () => {
   const { isMd } = useScreenSize();
   const [requesting, setRequesting] = useState(false);
   const { isOpen, open, close } = useDisclosure();
-  const [loading] = useState(false);
   const [selectedRoom, SetSelectedRoom] = useState<Room | null>(null);
   const { isLoading: convexAuthLoading } = useConvexAuth();
+  const navigate = useNavigate();
 
   const toast = useCallback(
-    (message?: string, type?: "success" | "error" | "info") => {
+    (
+      message?: string,
+      type?: "success" | "error" | "info",
+      duration?: number
+    ) => {
       messageApi.open({
         type: type ?? "success",
         content: message ?? "Successful",
-        duration: 8,
+        duration,
       });
     },
     [messageApi]
@@ -36,6 +40,29 @@ const JoinRoom = () => {
     api.rooms.getPublicRooms,
     convexAuthLoading ? "skip" : {}
   );
+
+  const onRequest = async () => {
+    if (!selectedRoom) {
+      toast("Sorry an error occurred", "info");
+      return;
+    }
+    try {
+      setRequesting(true);
+      const res = await requestRoom({ code: selectedRoom.code });
+      if (res.ok) {
+        toast(res.message, "info");
+        close();
+      } else {
+        toast(res.message, "info");
+      }
+      setCode("");
+    } catch (error) {
+      console.error(error);
+      toast("Failed to request room", "error");
+    } finally {
+      setRequesting(false);
+    }
+  };
 
   const handleOnSearch = async () => {
     if (!code) {
@@ -58,9 +85,9 @@ const JoinRoom = () => {
       } else {
         toast(res.message, "info");
       }
+      setCode("");
     } catch (error) {
       console.error(error);
-      setCode("");
       toast("Failed to request room", "error");
     } finally {
       setRequesting(false);
@@ -68,6 +95,15 @@ const JoinRoom = () => {
   };
 
   console.log("selected Room: ", selectedRoom);
+
+  // Show a loading state while Convex auth is being determined
+  if (convexAuthLoading || !rooms) {
+    return (
+      <div className="flex w-full flex-col h-full items-center justify-center">
+        <LoadingDots color="#f84565" size={20} />
+      </div>
+    );
+  }
 
   // Show a loading state while Convex auth is being determined
   return (
@@ -113,6 +149,13 @@ const JoinRoom = () => {
           <span className="flex items-center justify-center gap-x-3 w-full lg:my-5">
             <span className="flex items-center gap-1">
               <div
+                style={{ backgroundColor: "pink" }}
+                className={` rounded-full p-2`}
+              />
+              <span>You own</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <div
                 style={{ backgroundColor: "orange" }}
                 className={` rounded-full p-2`}
               />
@@ -131,10 +174,22 @@ const JoinRoom = () => {
             {rooms.map((room) => (
               <div
                 onClick={() => {
+                  if (room.request === "accepted") {
+                    navigate(`/room/details/${room._id}`);
+                    return;
+                  }
+                  if (room.request !== "none") {
+                    toast("You already have a req for this room");
+                    return;
+                  }
+                  if (room.ishost) {
+                    toast("You own the room already");
+                    return;
+                  }
                   SetSelectedRoom(room);
                   open();
                 }}
-                className="relative p-3 px-10 flex flex-col items-center rounded-lg shadow shadow-primary border border-primary w-fit cursor-pointer hover:bg-primary/10 active:bg-black"
+                className="relative p-3 lg:px-10 flex flex-col items-center rounded-lg shadow shadow-primary border border-primary w-fit cursor-pointer hover:bg-primary/10 active:bg-black"
                 key={room._id}
               >
                 <Avatar
@@ -151,7 +206,7 @@ const JoinRoom = () => {
                     {room.noOfPlayers} / {room.maxPlayers}
                   </span>
                 </span>
-                <Notch req={room.request} />
+                <Notch req={room.request} ishost={room.ishost} />
               </div>
             ))}
           </div>
@@ -173,19 +228,19 @@ const JoinRoom = () => {
           <Button
             type="primary"
             size="small"
-            loading={loading}
-            disabled={loading}
+            loading={requesting}
+            disabled={requesting}
             className="!bg-primary !text-white"
-            // onClick={action}
+            onClick={onRequest}
           >
             Request
           </Button>,
         ]}
-        className="!border !border-primary !rounded-xl"
+        className="!border !border-primary !rounded-xl !p-0"
         title={<span className="!text-primary">Request to join room</span>}
       >
         <span className="text-xl font-medium text-white">
-          Are you sure you want to request to join this room?
+          Click/tap on Request to request to join.
         </span>
       </Modal>
     </div>
@@ -205,13 +260,15 @@ export interface Room {
   noOfPlayers: number;
   request: string;
 }
-const Notch = ({ req }: { req: string }) => {
+const Notch = ({ req, ishost }: { req: string; ishost?: boolean }) => {
   const color =
     req.toLowerCase() === "pending"
       ? "orange"
       : req === "accepted"
         ? "green"
-        : "";
+        : ishost
+          ? "pink"
+          : "";
 
   return (
     <div

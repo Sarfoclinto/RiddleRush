@@ -17,6 +17,7 @@ import type * as actions from "../actions.js";
 import type * as category from "../category.js";
 import type * as handlers_clerk from "../handlers/clerk.js";
 import type * as http from "../http.js";
+import type * as notification from "../notification.js";
 import type * as playtime from "../playtime.js";
 import type * as riddles from "../riddles.js";
 import type * as roomPlaytime from "../roomPlaytime.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   category: typeof category;
   "handlers/clerk": typeof handlers_clerk;
   http: typeof http;
+  notification: typeof notification;
   playtime: typeof playtime;
   riddles: typeof riddles;
   roomPlaytime: typeof roomPlaytime;

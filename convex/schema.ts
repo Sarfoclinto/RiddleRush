@@ -124,8 +124,11 @@ export default defineSchema({
   notification: defineTable({
     creator: v.id("users"),
     reciever: v.id("users"),
+    read: v.boolean(),
     type: v.union(v.literal("request"), v.literal("accepted")),
+    roomId: v.optional(v.id("rooms")),
   })
     .index("by_creator", ["creator"])
-    .index("by_reciever", ["reciever"]),
+    .index("by_reciever", ["reciever"])
+    .index("by_roomId", ["roomId"]),
 });

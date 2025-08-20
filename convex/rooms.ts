@@ -250,7 +250,7 @@ export const getRoomPlayers = query({
 });
 
 export const getPublicRooms = query({
-  args: {userId: v.optional(v.id("users"))},
+  args: { userId: v.optional(v.id("users")) },
   handler: async (ctx) => {
     const user = await getAuthUser(ctx);
     // 1) fetch public rooms
@@ -343,6 +343,7 @@ export const getPublicRooms = query({
         startUser: room.startUser,
         // playing is now on the room itself
         playing: !!room.playing,
+        ishost: room.hostId === user._id,
         noOfPlayers: countsByRoom.get(room._id) ?? 0,
         request: requestStatusByRoom.get(room._id) ?? "none",
       };
@@ -351,5 +352,3 @@ export const getPublicRooms = query({
     return result;
   },
 });
-
-

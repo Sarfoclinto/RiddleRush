@@ -13,6 +13,7 @@ import LoadRiddles from "./pages/Room/load";
 import RoomPlayers from "./pages/Room/details";
 import MyRooms from "./pages/Rooms/my-rooms";
 import JoinRoom from "./pages/Room/join";
+import MyNotification from "./pages/Me/notifications";
 
 function App() {
   const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ function App() {
 
             {/* me */}
             <Route path="/me/my-rooms" element={<MyRooms />} />
+            <Route path="/me/notifications" element={<MyNotification />} />
           </Route>
         </Routes>
       </QueryClientProvider>

@@ -1,11 +1,11 @@
 import { Authenticated, useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useParams } from "react-router-dom";
-import type { Id } from "myconvex/_generated/dataModel";
 import LoadingDots from "@/components/LoadingDots";
 import { useUser } from "@clerk/clerk-react";
 import { Avatar } from "antd";
 import useScreenSize from "@/hooks/useScreenSize";
+import type { Id } from "myconvex/_generated/dataModel";
 
 const RoomPlayers = () => {
   const { isMd } = useScreenSize();

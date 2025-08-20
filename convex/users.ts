@@ -189,6 +189,8 @@ export const requestRoom = mutation({
       creator: user._id,
       reciever: room.hostId,
       type: "request",
+      read: false,
+      roomId: room._id,
     });
 
     return { ok: true, message: "Room request sent" };
