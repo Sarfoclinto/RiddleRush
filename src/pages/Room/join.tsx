@@ -94,7 +94,7 @@ const JoinRoom = () => {
     }
   };
 
-  console.log("selected Room: ", selectedRoom);
+  // console.log("selected Room: ", selectedRoom);
 
   // Show a loading state while Convex auth is being determined
   if (convexAuthLoading || !rooms) {

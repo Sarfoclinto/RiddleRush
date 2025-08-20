@@ -1,9 +1,11 @@
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import LoadingDots from "@/components/LoadingDots";
 import type { Id } from "myconvex/_generated/dataModel";
 import { Avatar, Button } from "antd";
 import { CheckIcon } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const MyNotification = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -59,6 +61,22 @@ export interface Notification {
 }
 
 const NotCard = ({ nt }: { nt: Notification }) => {
+  const [loading, setLoading] = useState(false);
+  const acceptReq = useMutation(api.rooms.acceptRoomRequest);
+  const handleAccept = async () => {
+    if (nt.type !== "request") return;
+    try {
+      setLoading(true);
+      await acceptReq({
+        creatorId: nt.creator,
+        roomId: nt.roomId!,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
   if (nt.type === "request") {
     return (
       <div className="relative flex w-full items-center px-3 py-2 active:bg-primary/10 bg-primary/10 hover:bg-primary/20 justify-between shadow shadow-primary/30 my-1 rounded-lg cursor-pointer">
@@ -95,7 +113,13 @@ const NotCard = ({ nt }: { nt: Notification }) => {
             >
               Reject
             </Button>
-            <Button size="small" className="!bg-primary !text-white">
+            <Button
+              loading={loading}
+              disabled={loading}
+              onClick={handleAccept}
+              size="small"
+              className="!bg-primary !text-white"
+            >
               Accept
             </Button>
           </div>
@@ -114,9 +138,9 @@ const NotCard = ({ nt }: { nt: Notification }) => {
           <span className="flex flex-col gap-y">
             <span className="flex items-center gap-x-2">
               <span className="capitalize text-lg font-medium text-primary">
-                {nt.creatorDetails.username}
+                You
               </span>
-              <span> is requesting to join your Room</span>
+              <span> have been accepted into room</span>
             </span>
             <span className="flex items-center gap-x-2">
               <span className="flex items-center gap-x-2">
@@ -130,6 +154,13 @@ const NotCard = ({ nt }: { nt: Notification }) => {
             </span>
           </span>
         </div>
+
+        <Link
+          to={`/room/details/${nt.roomId}`}
+          className="p-2 rounded bg-primary/20 cursor-pointer"
+        >
+          Visit room
+        </Link>
       </div>
     );
   }

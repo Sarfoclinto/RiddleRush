@@ -35,6 +35,8 @@ const RoomPlayers = () => {
       </div>
     );
   }
+  console.log("myimage: ", me?.image);
+  console.log("playerimg: ", players?.map((p) => p.user?.image));
 
   return (
     <div>
@@ -60,11 +62,11 @@ const RoomPlayers = () => {
               </div>
             )}
             {(players ?? []).length > 0 ? (
-              <div className="flex-wrap gap-3 w-9/12">
+              <div className="flex-wrap items-center justify-center gap-3 w-9/12">
                 {players?.map((player) => (
                   <div
                     key={player._id}
-                    className="border border-primary shadow rounded-xl p-3"
+                    className="border border-primary shadow rounded-xl p-3 w-fit flex flex-col items-center justify-center"
                   >
                     <div className="w-fit h-fit rounded-full shadow shadow-primary">
                       <Avatar
@@ -74,7 +76,7 @@ const RoomPlayers = () => {
                         size={isMd ? 100 : 50}
                       />
                     </div>
-                    <span className="text-lg font-medium text-pretty mt-3">
+                    <span className="text-lg font-medium text-pretty mt-3 capitalize">
                       {player.user?.username}
                     </span>
                   </div>

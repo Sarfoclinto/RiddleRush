@@ -130,5 +130,7 @@ export default defineSchema({
   })
     .index("by_creator", ["creator"])
     .index("by_reciever", ["reciever"])
-    .index("by_roomId", ["roomId"]),
+    .index("by_roomId", ["roomId"])
+    .index("by_room_receiver", ["roomId", "reciever"]),
+
 });

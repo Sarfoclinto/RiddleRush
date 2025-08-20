@@ -140,23 +140,35 @@ export const updateRoomPlaytimeId = mutation({
 
 export const acceptRoomRequest = mutation({
   args: {
-    requestId: v.id("roomRequests"),
-    hostUserId: v.id("users"), // caller id to check host
+    // requestId: v.id("roomRequests"),
+    roomId: v.id("rooms"),
+    creatorId: v.id("users"),
   },
-  handler: async (ctx, { requestId, hostUserId }) => {
-    const request = await ctx.db.get(requestId);
+  handler: async (ctx, { creatorId, roomId }) => {
+    const getRequest = await ctx.db
+      .query("roomRequests")
+      .withIndex("by_roomId", (q) =>
+        q.eq("roomId", roomId).eq("userId", creatorId)
+      )
+      .first();
+    if (!getRequest) {
+      throw new Error("Request not found");
+    }
+    const request = await ctx.db.get(getRequest?._id);
     if (!request) throw new Error("Request not found");
 
     const room = await ctx.db.get(request.roomId);
     if (!room) throw new Error("Room not found");
 
+    const user = await getAuthUser(ctx);
+
     // security: only room host can accept
-    if (String(room.hostId) !== String(hostUserId)) {
+    if (String(room.hostId) !== String(user._id)) {
       throw new Error("Only host can accept join requests");
     }
 
     // 1) mark request accepted
-    await ctx.db.patch(requestId, { status: "accepted" });
+    await ctx.db.patch(request._id, { status: "accepted" });
 
     // 2) compute joinIndex (count existing players)
     const existing = await ctx.db
@@ -194,6 +206,24 @@ export const acceptRoomRequest = mutation({
     // 5) persist to room.startUser so the host's future "Start" uses it
     await ctx.db.patch(request.roomId, { startUser: newStartUser });
 
+    await ctx.db.insert("notification", {
+      creator: user._id,
+      reciever: request.userId,
+      read: false,
+      type: "accepted",
+      roomId: request.roomId,
+    });
+
+    // mark that notification as read
+    const notification = await ctx.db
+      .query("notification")
+      .withIndex("by_room_receiver", (q) =>
+        q.eq("roomId", request.roomId).eq("reciever", user._id)
+      )
+      .first();
+    if (notification) {
+      await ctx.db.patch(notification._id, { read: true });
+    }
     return { ok: true, acceptedUser: request.userId, startUser: newStartUser };
   },
 });
@@ -228,8 +258,8 @@ export const getRoomPlayers = query({
     if (!room) {
       throw new Error("Room not found");
     }
-    if (user._id !== room.hostId) {
-      throw new Error("You are not the host of the room");
+    if (!user) {
+      throw new Error("User not found");
     }
     const players = await ctx.db
       .query("roomPlayers")
@@ -242,6 +272,7 @@ export const getRoomPlayers = query({
         return {
           ...pl,
           user,
+          ishost: user !== null ? user._id == room.hostId : false,
         };
       })
     );

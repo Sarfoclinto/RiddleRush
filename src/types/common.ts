@@ -166,3 +166,19 @@ export interface ScoreBarProps extends React.HTMLAttributes<HTMLDivElement> {
   // accessibility
   ariaLabel?: string; // default: "Score breakdown"
 }
+export type SoundPlayMode = "once" | "interval" | "everyShake" | "countincrease";
+
+export type NotificationBellProps = {
+  hasUnread: boolean; // required: whether there's an unread notification
+  unreadCount?: number; // optional: badge count
+  onClick?: () => void; // click handler
+  soundUrl?: string; // optional: notification sound URL
+  playSound?: boolean; // default false
+  shakeDuration?: number; // ms the shake animation runs (default 700)
+  shakeInterval?: number; // ms between starts of shakes (default 2000)
+  className?: string; // passthrough className
+  ariaLabel?: string; // aria-label for button
+  children?: React.ReactNode; // optional children to render inside button
+  soundPlayMode?: SoundPlayMode; // "once" | "interval" | "everyShake"
+  soundInterval?: number; // ms for "interval" mode (default 5000)
+};

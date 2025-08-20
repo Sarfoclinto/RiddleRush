@@ -1,16 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
-import {
-  BellDotIcon,
-  BellIcon,
-  HouseIcon,
-  MenuIcon,
-  XIcon,
-} from "lucide-react";
+import { HouseIcon, MenuIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { useClerk, UserButton, useUser } from "@clerk/clerk-react";
 import { assets } from "@/assets/assets";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { NotificationBell } from "./NotificationBell";
 
 const Navbar = () => {
   const { user } = useUser();
@@ -56,17 +51,13 @@ const Navbar = () => {
       </div>
 
       <div className="flex items-center gap-5">
-        {/* <SearchIcon className="w-8 h-8 cursor-pointer" /> */}
-        <button
+        <NotificationBell
+          soundPlayMode="once"
+          playSound={true}
+          unreadCount={notifications?.length}
+          hasUnread={(notifications || [])?.length > 0}
           onClick={() => navigate("/me/notifications")}
-          className="p-2 rounded-full hover:bg-primary/10 bg-primary/20 cursor-pointer"
-        >
-          {(notifications || [])?.length > 0 ? (
-            <BellDotIcon color={"red"} />
-          ) : (
-            <BellIcon />
-          )}
-        </button>
+        />
         {!user ? (
           <button
             onClick={() => openSignIn()}
