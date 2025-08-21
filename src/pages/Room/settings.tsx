@@ -50,7 +50,6 @@ const RoomSettings = () => {
         room: id as Id<"rooms">,
         skipBehaviour: values.skipBehaviour,
       });
-      console.log("setting res: ", res);
       if (res) {
         navigate(`/room/load/${res._id}`);
       }

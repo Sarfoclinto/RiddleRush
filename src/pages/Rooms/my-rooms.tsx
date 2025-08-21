@@ -19,7 +19,6 @@ const MyRooms = () => {
     );
   }
 
-  //   console.log("rooms: ", rooms);
   return (
     <div className="flex w-full flex-col h-full items-center justify-cente overflow-y-auto">
       <span className="text-xl">My Rooms: </span>

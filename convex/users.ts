@@ -76,6 +76,7 @@ export const getUserAndRoomInfo = query({
     return {
       ...user,
       isRoomMember: !!player,
+      isReady: player ? player.ready : false,
     };
   },
 });
@@ -161,7 +162,6 @@ export const myRooms = query({
   handler: async (ctx) => {
     const user = await getAuthUser(ctx);
     if (!user) throw new Error("User not found");
-    // console.log("user found")
     const rooms = await ctx.db
       .query("rooms")
       .withIndex("by_user", (q) => q.eq("hostId", user._id))
@@ -190,7 +190,7 @@ export const requestRoom = mutation({
       )
       .filter((q) => q.eq(q.field("status"), "pending"))
       .first();
-      
+
     if (existing) {
       return {
         ok: false,
@@ -218,5 +218,60 @@ export const requestRoom = mutation({
     });
 
     return { ok: true, message: "Room request sent" };
+  },
+});
+
+export const alreadyARoomPlayer = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthUser(ctx);
+    if (!user) throw new Error("User not found");
+
+    const player = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .first();
+
+    if (player) {
+      return { ok: true, roomId: player.roomId };
+    } else {
+      return { ok: false, message: "You are not a player in any room" };
+    }
+  },
+});
+
+export const transferOwnership = mutation({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const user = await getAuthUser(ctx);
+
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+    if (room.hostId !== user._id) {
+      throw new Error("You are not the host of this room");
+    }
+
+    const notHostPlayer = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
+      .filter((q) => q.neq(q.field("userId"), user._id))
+      .first();
+
+    if (!notHostPlayer) {
+      // no other players, delete the room
+      await ctx.db.delete(roomId);
+      return { ok: true, message: "Room deleted" };
+    }
+    // transfer ownership to the first player
+    await ctx.db.patch(roomId, { hostId: notHostPlayer.userId });
+
+    // create a notification for the new host
+    await ctx.db.insert("notification", {
+      creator: user._id,
+      reciever: notHostPlayer.userId,
+      type: "ownership_transfer",
+      read: false,
+      roomId: roomId,
+    });
   },
 });

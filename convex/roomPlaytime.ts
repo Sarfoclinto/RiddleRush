@@ -64,7 +64,7 @@ export const onStartGame = mutation({
     // 1) load players for roomId
     const players = await ctx.db
       .query("roomPlayers")
-      .filter((q) => q.eq(q.field("roomId"), roomId))
+      .withIndex("by_ready", (q) => q.eq("roomId", room._id).eq("ready", true))
       .collect();
 
     if (players.length === 0) throw new Error("No players to start the game");

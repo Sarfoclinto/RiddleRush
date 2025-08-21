@@ -107,7 +107,10 @@ export default defineSchema({
     userId: v.id("users"),
     ready: v.optional(v.boolean()),
     joinIndex: v.optional(v.number()),
-  }).index("by_roomId", ["roomId", "userId"]),
+  })
+    .index("by_roomId", ["roomId", "userId"])
+    .index("by_userId", ["userId", "roomId"])
+    .index("by_ready", ["roomId", "ready"]),
 
   roomRequests: defineTable({
     roomId: v.id("rooms"),
@@ -116,7 +119,8 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("accepted"),
       v.literal("rejected"),
-      v.literal("removed")
+      v.literal("removed"),
+      
     ),
   })
     .index("by_roomId", ["roomId", "userId"])
@@ -130,7 +134,7 @@ export default defineSchema({
       v.literal("request"),
       v.literal("accepted"),
       v.literal("quit"),
-      v.literal("removed")
+      v.literal("removed"),v.literal("ownership_transfer")
     ),
     roomId: v.optional(v.id("rooms")),
     roomRequestId: v.optional(v.id("roomRequests")),

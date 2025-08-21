@@ -58,7 +58,7 @@ export interface Notification {
   _id: Id<"notification">;
   _creationTime: number;
   roomId?: Id<"rooms"> | undefined;
-  type: "accepted" | "request" | "quit" | "removed";
+  type: "accepted" | "request" | "quit" | "removed" | "ownership_transfer";
   creator: Id<"users">;
   reciever: Id<"users">;
   read: boolean;
@@ -114,7 +114,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
 
   if (nt.type === "request") {
     return (
-      <div className="relative flex w-full items-center px-3 py-2 active:bg-primary/10 bg-primary/10 hover:bg-primary/20 justify-between shadow shadow-primary/30 my-1 rounded-lg cursor-pointer">
+      <div className="relative flex w-full items-center px-3 py-2 active:bg-primary/10 bg-primary/10 hover:bg-primary/20 justify-between shadow shadow-primary/10 my-1 rounded-lg cursor-pointer">
         <div className="flex items-center gap-1">
           <Avatar src={nt.creatorDetails.image} />
           <span className="flex flex-col gap-y">
@@ -172,7 +172,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
     );
   } else if (nt.type === "accepted") {
     return (
-      <div className="flex w-full items-center px-3 py-2 justify-between shadow shadow-primary my-1 rounded-lg cursor-pointer">
+      <div className="flex w-full items-center px-3 py-2 justify-between active:bg-green-400/10 bg-green-400/10 hover:bg-green-400/20 shadow shadow-green-400/20 my-1 rounded-lg cursor-pointer">
         <div className="flex items-center gap-1">
           <Avatar src={nt.creatorDetails.image} />
           <span className="flex flex-col gap-y">
@@ -199,7 +199,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
           <button
             onClick={handleReadAndLeave}
             disabled={loading}
-            className={`px-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+            className={`px-2 rounded bg-green-400/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
           >
             {loading ? (
               <LoadingDots inline color="#f84565" size={5} />
@@ -209,7 +209,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
               </span>
             )}
           </button>
-          <span className="text-xs text-primary self-end">
+          <span className="text-xs text-green-400 self-end">
             {timeAgo(nt._creationTime, { short: true })}
           </span>
         </div>
@@ -217,7 +217,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
     );
   } else if (nt.type === "removed") {
     return (
-      <div className="flex w-full items-center px-3 py-2 justify-between shadow shadow-primary my-1 rounded-lg cursor-pointer">
+      <div className="flex w-full items-center px-3 py-2 justify-between active:bg-amber-400/10 bg-amber-400/10 hover:bg-amber-400/20 shadow shadow-amber-400/20 my-1 rounded-lg cursor-pointer">
         <div className="flex items-center gap-1">
           <Avatar src={nt.creatorDetails.image} />
           <span className="flex flex-col gap-y">
@@ -243,7 +243,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
           <button
             onClick={handleRead}
             disabled={loading}
-            className={`px-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+            className={`px-2 rounded bg-amber-400/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
           >
             {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
           </button>
@@ -255,7 +255,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
     );
   } else if (nt.type === "quit") {
     return (
-      <div className="flex w-full items-center px-3 py-2 justify-between shadow shadow-primary my-1 rounded-lg cursor-pointer">
+      <div className="flex w-full items-center px-3 py-2 justify-between active:bg-purple-400/10 bg-sky-400/10 hover:bg-sky-400/20 shadow shadow-sky-400/20 my-1 rounded-lg cursor-pointer">
         <div className="flex items-center gap-1">
           <Avatar src={nt.creatorDetails.image} />
           <span className="flex flex-col gap-y">
@@ -281,9 +281,53 @@ const NotCard = ({ nt }: { nt: Notification }) => {
           <button
             onClick={handleRead}
             disabled={loading}
-            className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+            className={`px-2 rounded bg-sky-500/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
           >
             {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
+          </button>
+          <span className="text-xs text-primary self-end">
+            {timeAgo(nt._creationTime, { short: true })}
+          </span>
+        </div>
+      </div>
+    );
+  } else if (nt.type === "ownership_transfer") {
+    return (
+      <div className="flex w-full items-center px-3 py-2 justify-between active:bg-purple-400/10 bg-purple-400/10 hover:bg-purple-400/20 shadow shadow-purple-400/20 my-1 rounded-lg cursor-pointer">
+        <div className="flex items-center gap-1">
+          <Avatar src={nt.creatorDetails.image} />
+          <span className="flex flex-col gap-y">
+            <span className="flex items-center gap-x-2">
+              <span className="capitalize text-lg font-medium text-primary">
+                {"You"}
+              </span>
+              <span> are the new host of this room. </span>
+            </span>
+            <span className="flex items-center gap-x-2 max-md:text-xs">
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Name:</span>
+                <span>{nt.roomName}</span>
+              </span>
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Code:</span>
+                <span>{nt.roomCode?.slice(3, 10)}</span>
+              </span>
+            </span>
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <button
+            onClick={handleReadAndLeave}
+            disabled={loading}
+            className={`px-2 rounded bg-purple-500/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+          >
+            {loading ? (
+              <LoadingDots inline color="#f84565" size={5} />
+            ) : (
+              <span className="text-xs">
+                Visit <span className="max-md:hidden">room</span>{" "}
+              </span>
+            )}
           </button>
           <span className="text-xs text-primary self-end">
             {timeAgo(nt._creationTime, { short: true })}

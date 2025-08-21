@@ -47,7 +47,7 @@ export const createRoom = mutation({
     await ctx.db.insert("roomPlayers", {
       roomId: roomId,
       userId: user._id,
-      ready: false,
+      ready: true,
       joinIndex: 0,
     });
 
@@ -120,11 +120,24 @@ export const getRoomById = query({
 export const getRoom = query({
   args: { id: v.id("rooms") },
   handler: async (ctx, { id }) => {
-    const room = ctx.db.get(id);
+    const room = await ctx.db.get(id);
     if (!room) {
       throw new Error("Room not found");
     }
-    return room;
+
+    const readyPlayers = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_ready", (q) => q.eq("roomId", room._id).eq("ready", true))
+      .collect();
+    const accpetedPlayers = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_ready", (q) => q.eq("roomId", room._id))
+      .collect();
+    return {
+      ...room,
+      readyPlayers: readyPlayers.length,
+      acceptedPlayers: accpetedPlayers.length,
+    };
   },
 });
 
@@ -192,8 +205,6 @@ export const acceptRoomRequest = mutation({
         joinIndex,
       };
       await ctx.db.insert("roomPlayers", newPlayer);
-      console.log("Inserted new player:", newPlayer);
-      console.log("into room:", room);
 
       // 4) recompute random startUser among current players
       const playersAfterInsert = existing.concat([
@@ -507,5 +518,37 @@ export const isRoomMember = query({
 
     const player = roomplayers.find((p) => p.userId === user._id);
     return !!player;
+  },
+});
+
+export const toggleReady = mutation({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const user = await getAuthUser(ctx);
+    const player = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_roomId", (q) =>
+        q.eq("roomId", roomId).eq("userId", user._id)
+      )
+      .first();
+    if (!player) {
+      throw new Error("You are not a player in this room");
+    }
+
+    if (player.userId !== user._id) {
+      throw new Error("You can only toggle your own ready status");
+    }
+
+    if (player.ready) {
+      // set as not ready
+      await ctx.db.patch(player._id, { ready: false });
+      return { ok: true, ready: false };
+    } else if (!player.ready) {
+      // set as ready
+      await ctx.db.patch(player._id, { ready: true });
+      return { ok: true, ready: true };
+    } else {
+      throw new Error("Unexpected player state");
+    }
   },
 });

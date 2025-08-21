@@ -40,6 +40,10 @@ const JoinRoom = () => {
     api.rooms.getPublicRooms,
     convexAuthLoading ? "skip" : {}
   );
+  const alreadyARoomPlayer = useQuery(
+    api.users.alreadyARoomPlayer,
+    convexAuthLoading ? "skip" : {}
+  );
 
   const onRequest = async () => {
     if (!selectedRoom) {
@@ -94,7 +98,6 @@ const JoinRoom = () => {
     }
   };
 
-  // console.log("selected Room: ", selectedRoom);
 
   // Show a loading state while Convex auth is being determined
   if (convexAuthLoading || !rooms) {
@@ -152,21 +155,28 @@ const JoinRoom = () => {
                 style={{ backgroundColor: "pink" }}
                 className={` rounded-full p-2`}
               />
-              <span>You own</span>
+              <span className="max-md:text-xs">You own</span>
             </span>
             <span className="flex items-center gap-1">
               <div
                 style={{ backgroundColor: "orange" }}
                 className={` rounded-full p-2`}
               />
-              <span>Pending</span>
+              <span className="max-md:text-xs">Pending</span>
             </span>
             <span className="flex items-center gap-1">
               <div
                 style={{ backgroundColor: "green" }}
                 className={` rounded-full p-2`}
               />
-              <span>Accpeted</span>
+              <span className="max-md:text-xs">Accpeted</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <div
+                style={{ backgroundColor: "#05df72 " }}
+                className={` rounded-full p-2`}
+              />
+              <span className="max-md:text-xs">Match Started</span>
             </span>
           </span>
 
@@ -174,12 +184,23 @@ const JoinRoom = () => {
             {rooms.map((room) => (
               <div
                 onClick={() => {
+                  if (room.playing) {
+                    toast("This room is currently playing", "info");
+                    return;
+                  }
                   if (room.request === "accepted") {
                     navigate(`/room/details/${room._id}`);
                     return;
                   }
                   if (room.request === "pending") {
                     toast("You already have a req for this room");
+                    return;
+                  }
+                  if (alreadyARoomPlayer?.ok) {
+                    if (alreadyARoomPlayer.roomId === room._id) {
+                      navigate(`/room/details/${room._id}`);
+                    }
+                    toast("You are already a player in a room", "info");
                     return;
                   }
                   if (room.ishost) {
@@ -207,6 +228,9 @@ const JoinRoom = () => {
                     {room.noOfPlayers} / {room.maxPlayers}
                   </span>
                 </span>
+                {room.playing && (
+                  <div className="absolute hover:bg-green-400/30 active:scale-95 transition duration-100 active:bg-green-400/30 p-1 rounded-full top-2 left-2 bg-green-400 cursor-pointer" />
+                )}
                 <Notch req={room.request} ishost={room.ishost} />
               </div>
             ))}
