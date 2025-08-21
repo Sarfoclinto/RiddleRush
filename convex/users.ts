@@ -260,6 +260,11 @@ export const transferOwnership = mutation({
     if (!notHostPlayer) {
       // no other players, delete the room
       await ctx.db.delete(roomId);
+      // delete all room players
+      // delte all room notitications
+      // delete all room requests
+      // delete all roomplaytimes
+      // delete all room settings
       return { ok: true, message: "Room deleted" };
     }
     // transfer ownership to the first player
