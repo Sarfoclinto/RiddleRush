@@ -258,13 +258,51 @@ export const transferOwnership = mutation({
       .first();
 
     if (!notHostPlayer) {
-      // no other players, delete the room
-      await ctx.db.delete(roomId);
       // delete all room players
+      const players = await ctx.db
+        .query("roomPlayers")
+        .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+        .collect();
+      await Promise.all(
+        players.map(async (pl) => {
+          await ctx.db.delete(pl._id);
+        })
+      );
       // delte all room notitications
+      const notifications = await ctx.db
+        .query("notification")
+        .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+        .collect();
+      await Promise.all(
+        notifications.map(async (nt) => {
+          await ctx.db.delete(nt._id);
+        })
+      );
       // delete all room requests
+      const roomRequests = await ctx.db
+        .query("roomRequests")
+        .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+        .collect();
+      await Promise.all(
+        roomRequests.map(async (rq) => {
+          await ctx.db.delete(rq._id);
+        })
+      );
       // delete all roomplaytimes
+      if (room.playtimeId) {
+        await ctx.db.delete(room.playtimeId);
+      }
       // delete all room settings
+      const settings = await ctx.db
+        .query("roomSettings")
+        .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+        .collect();
+      await Promise.all(
+        settings.map(async (st) => {
+          await ctx.db.delete(st._id);
+        })
+      );
+      await ctx.db.delete(roomId);
       return { ok: true, message: "Room deleted" };
     }
     // transfer ownership to the first player

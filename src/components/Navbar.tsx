@@ -14,6 +14,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const { isLoading, isAuthenticated } = useConvexAuth();
+
   const notifications = useQuery(
     api.notification.getMyUnreadNotifications,
     isLoading || !isAuthenticated ? "skip" : {}
@@ -24,7 +25,6 @@ const Navbar = () => {
     scrollTo(0, 0);
     setIsOpen(false);
   };
-
 
   return (
     <div className="fixed top-0 left-0 z-50 w-full flex items-center justify-between px-6 md:px-16 lg:px-36 py-5">
@@ -55,6 +55,7 @@ const Navbar = () => {
           playSound={true}
           unreadCount={notifications?.length}
           hasUnread={(notifications || [])?.length > 0}
+          // hasUnread={false}
           onClick={() => navigate("/me/notifications")}
         />
         {!user ? (
