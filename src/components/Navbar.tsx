@@ -45,7 +45,7 @@ const Navbar = () => {
         <Link onClick={linkOnClick} to="/home">
           Home
         </Link>
-        <Link onClick={linkOnClick} to="/rooms">
+        <Link onClick={linkOnClick} to="/room/join">
           Rooms
         </Link>
       </div>

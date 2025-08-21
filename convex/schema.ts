@@ -115,7 +115,8 @@ export default defineSchema({
     status: v.union(
       v.literal("pending"),
       v.literal("accepted"),
-      v.literal("rejected")
+      v.literal("rejected"),
+      v.literal("removed")
     ),
   })
     .index("by_roomId", ["roomId", "userId"])
@@ -125,12 +126,18 @@ export default defineSchema({
     creator: v.id("users"),
     reciever: v.id("users"),
     read: v.boolean(),
-    type: v.union(v.literal("request"), v.literal("accepted")),
+    type: v.union(
+      v.literal("request"),
+      v.literal("accepted"),
+      v.literal("quit"),
+      v.literal("removed")
+    ),
     roomId: v.optional(v.id("rooms")),
+    roomRequestId: v.optional(v.id("roomRequests")),
   })
     .index("by_creator", ["creator"])
     .index("by_reciever", ["reciever"])
     .index("by_roomId", ["roomId"])
+    .index("by_room_request_id", ["roomRequestId"])
     .index("by_room_receiver", ["roomId", "reciever"]),
-
 });

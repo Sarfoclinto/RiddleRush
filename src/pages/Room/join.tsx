@@ -178,12 +178,13 @@ const JoinRoom = () => {
                     navigate(`/room/details/${room._id}`);
                     return;
                   }
-                  if (room.request !== "none") {
+                  if (room.request === "pending") {
                     toast("You already have a req for this room");
                     return;
                   }
                   if (room.ishost) {
                     toast("You own the room already");
+                    navigate(`/room/details/${room._id}`);
                     return;
                   }
                   SetSelectedRoom(room);

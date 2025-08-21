@@ -44,6 +44,13 @@ export const createRoom = mutation({
       playing: false,
     });
 
+    await ctx.db.insert("roomPlayers", {
+      roomId: roomId,
+      userId: user._id,
+      ready: false,
+      joinIndex: 0,
+    });
+
     return roomId;
   },
 });
@@ -145,19 +152,27 @@ export const acceptRoomRequest = mutation({
     creatorId: v.id("users"),
   },
   handler: async (ctx, { creatorId, roomId }) => {
-    const getRequest = await ctx.db
+    const request = await ctx.db
       .query("roomRequests")
       .withIndex("by_roomId", (q) =>
         q.eq("roomId", roomId).eq("userId", creatorId)
       )
+      .filter(
+        (q) =>
+          q.eq(q.field("status"), "pending") &&
+          q.eq(q.field("userId"), creatorId)
+      )
       .first();
-    if (!getRequest) {
+
+    if (!request) {
       throw new Error("Request not found");
     }
-    const request = await ctx.db.get(getRequest?._id);
-    if (!request) throw new Error("Request not found");
+    console.log("getReq: ", request);
+    const requestDetails = await ctx.db.get(request?._id);
+    if (!requestDetails) throw new Error("Request not found");
+    console.log("request: ", requestDetails);
 
-    const room = await ctx.db.get(request.roomId);
+    const room = await ctx.db.get(requestDetails.roomId);
     if (!room) throw new Error("Room not found");
 
     const user = await getAuthUser(ctx);
@@ -168,12 +183,12 @@ export const acceptRoomRequest = mutation({
     }
 
     // 1) mark request accepted
-    await ctx.db.patch(request._id, { status: "accepted" });
+    await ctx.db.patch(requestDetails._id, { status: "accepted" });
 
     // 2) compute joinIndex (count existing players)
     const existing = await ctx.db
       .query("roomPlayers")
-      .filter((q) => q.eq(q.field("roomId"), request.roomId))
+      .filter((q) => q.eq(q.field("roomId"), requestDetails.roomId))
       .collect();
     const joinIndex = existing.length;
 
@@ -194,8 +209,8 @@ export const acceptRoomRequest = mutation({
         _creationTime: Date.now(), // or 0 as a placeholder
         ready: false,
         joinIndex,
-        userId: request.userId,
-        roomId: request.roomId,
+        userId: requestDetails.userId,
+        roomId: requestDetails.roomId,
       },
     ]);
     const playerIds = playersAfterInsert.map((p) => p.userId);
@@ -204,27 +219,36 @@ export const acceptRoomRequest = mutation({
     const newStartUser = playerIds[randIndex];
 
     // 5) persist to room.startUser so the host's future "Start" uses it
-    await ctx.db.patch(request.roomId, { startUser: newStartUser });
+    await ctx.db.patch(requestDetails.roomId, { startUser: newStartUser });
 
     await ctx.db.insert("notification", {
       creator: user._id,
-      reciever: request.userId,
+      reciever: requestDetails.userId,
       read: false,
       type: "accepted",
-      roomId: request.roomId,
+      roomId: requestDetails.roomId,
     });
 
     // mark that notification as read
-    const notification = await ctx.db
+    const notifications = await ctx.db
       .query("notification")
       .withIndex("by_room_receiver", (q) =>
-        q.eq("roomId", request.roomId).eq("reciever", user._id)
+        q.eq("roomId", requestDetails.roomId).eq("reciever", user._id)
       )
-      .first();
-    if (notification) {
-      await ctx.db.patch(notification._id, { read: true });
-    }
-    return { ok: true, acceptedUser: request.userId, startUser: newStartUser };
+      .collect();
+
+    await Promise.all(
+      notifications.map(async (notification) => {
+        if (notification) {
+          await ctx.db.patch(notification._id, { read: true });
+        }
+      })
+    );
+    return {
+      ok: true,
+      acceptedUser: requestDetails.userId,
+      startUser: newStartUser,
+    };
   },
 });
 
@@ -276,7 +300,10 @@ export const getRoomPlayers = query({
         };
       })
     );
-    return playerDetials;
+
+    // remove self
+    const filtered = playerDetials.filter((pl) => pl.user?._id !== user._id);
+    return filtered;
   },
 });
 
@@ -381,5 +408,120 @@ export const getPublicRooms = query({
     });
 
     return result;
+  },
+});
+
+export const quitRoom = mutation({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const user = await getAuthUser(ctx);
+    const room = await ctx.db.get(roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    const avails = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_roomId", (q) =>
+        q.eq("roomId", roomId).eq("userId", user._id)
+      )
+      .collect();
+
+    const availsReq = await ctx.db
+      .query("roomRequests")
+      .withIndex("by_roomId", (q) =>
+        q.eq("roomId", room._id).eq("userId", user._id)
+      )
+      .collect();
+
+    await Promise.all(
+      availsReq.map(async (pl) => {
+        await ctx.db.delete(pl._id);
+      })
+    );
+
+    await Promise.all(
+      avails.map(async (pl) => {
+        await ctx.db.delete(pl._id);
+      })
+    );
+
+    await ctx.db.insert("notification", {
+      creator: user._id,
+      reciever: room.hostId,
+      read: false,
+      type: "quit",
+      roomId: roomId,
+    });
+  },
+});
+
+export const removeUserFromRoom = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  handler: async (ctx, { roomId, userId }) => {
+    const user = await getAuthUser(ctx);
+    const room = await ctx.db.get(roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    if (user._id !== room.hostId) {
+      throw new Error("Only room host can remove users");
+    }
+
+    const players = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_roomId", (q) =>
+        q.eq("roomId", roomId).eq("userId", userId)
+      )
+      .collect();
+
+    const reqs = await ctx.db
+      .query("roomRequests")
+      .withIndex("by_roomId", (q) =>
+        q.eq("roomId", room._id).eq("userId", userId)
+      )
+      .filter((q) => q.eq(q.field("status"), "accepted"))
+      .collect();
+
+    await Promise.all(
+      reqs.map(async (rq) => {
+        await ctx.db.patch(rq._id, { status: "removed" });
+      })
+    );
+
+    await Promise.all(
+      players.map(async (pl) => {
+        await ctx.db.delete(pl._id);
+      })
+    );
+
+    await ctx.db.insert("notification", {
+      creator: room.hostId,
+      reciever: userId,
+      read: false,
+      type: "removed",
+      roomId: roomId,
+    });
+    return { ok: true, removedUser: userId };
+  },
+});
+
+export const isRoomMember = query({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    const user = await getAuthUser(ctx);
+
+    const roomplayers = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+      .collect();
+
+    const player = roomplayers.find((p) => p.userId === user._id);
+    return !!player;
   },
 });

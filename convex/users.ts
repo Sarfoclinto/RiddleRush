@@ -59,6 +59,27 @@ export const getUserByClerkId = query({
   },
 });
 
+export const getUserAndRoomInfo = query({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const user = await getAuthUser(ctx);
+
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+
+    const roomplayers = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
+      .collect();
+
+    const player = roomplayers.find((p) => p.userId === user._id);
+    return {
+      ...user,
+      isRoomMember: !!player,
+    };
+  },
+});
+
 export const createUserByUsername = mutation({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
@@ -167,7 +188,9 @@ export const requestRoom = mutation({
       .withIndex("by_userId", (q) =>
         q.eq("userId", user._id).eq("roomId", room._id)
       )
+      .filter((q) => q.eq(q.field("status"), "pending"))
       .first();
+      
     if (existing) {
       return {
         ok: false,
@@ -179,7 +202,7 @@ export const requestRoom = mutation({
       return { ok: false, message: "You own the room already" };
     }
 
-    await ctx.db.insert("roomRequests", {
+    const reqId = await ctx.db.insert("roomRequests", {
       roomId: room._id,
       status: "pending",
       userId: user._id,
@@ -191,6 +214,7 @@ export const requestRoom = mutation({
       type: "request",
       read: false,
       roomId: room._id,
+      roomRequestId: reqId,
     });
 
     return { ok: true, message: "Room request sent" };

@@ -5,7 +5,7 @@ import type { Id } from "myconvex/_generated/dataModel";
 import { Avatar, Button } from "antd";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const MyNotification = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -54,7 +54,7 @@ export interface Notification {
   _id: Id<"notification">;
   _creationTime: number;
   roomId?: Id<"rooms"> | undefined;
-  type: "accepted" | "request";
+  type: "accepted" | "request" | "quit" | "removed";
   creator: Id<"users">;
   reciever: Id<"users">;
   read: boolean;
@@ -62,7 +62,36 @@ export interface Notification {
 
 const NotCard = ({ nt }: { nt: Notification }) => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const acceptReq = useMutation(api.rooms.acceptRoomRequest);
+  const readMsg = useMutation(api.notification.readNotification);
+  
+  const handleReadAndLeave = async () => {
+    try {
+      setLoading(true);
+      await readMsg({
+        id: nt._id,
+      });
+      navigate(`/room/details/${nt.roomId}`);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleRead = async () => {
+    try {
+      setLoading(true);
+      await readMsg({
+        id: nt._id,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAccept = async () => {
     if (nt.type !== "request") return;
     try {
@@ -77,6 +106,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
       setLoading(false);
     }
   };
+
   if (nt.type === "request") {
     return (
       <div className="relative flex w-full items-center px-3 py-2 active:bg-primary/10 bg-primary/10 hover:bg-primary/20 justify-between shadow shadow-primary/30 my-1 rounded-lg cursor-pointer">
@@ -130,7 +160,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
         )}
       </div>
     );
-  } else {
+  } else if (nt.type === "accepted") {
     return (
       <div className="flex w-full items-center px-3 py-2 justify-between shadow shadow-primary my-1 rounded-lg cursor-pointer">
         <div className="flex items-center gap-1">
@@ -155,12 +185,85 @@ const NotCard = ({ nt }: { nt: Notification }) => {
           </span>
         </div>
 
-        <Link
-          to={`/room/details/${nt.roomId}`}
-          className="p-2 rounded bg-primary/20 cursor-pointer"
+        <button
+          onClick={handleReadAndLeave}
+          disabled={loading}
+          className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
         >
-          Visit room
-        </Link>
+          {loading ? (
+            <LoadingDots inline color="#f84565" size={5} />
+          ) : (
+            "Visit room"
+          )}
+        </button>
+      </div>
+    );
+  } else if (nt.type === "removed") {
+    return (
+      <div className="flex w-full items-center px-3 py-2 justify-between shadow shadow-primary my-1 rounded-lg cursor-pointer">
+        <div className="flex items-center gap-1">
+          <Avatar src={nt.creatorDetails.image} />
+          <span className="flex flex-col gap-y">
+            <span className="flex items-center gap-x-2">
+              <span className="capitalize text-lg font-medium text-primary">
+                You
+              </span>
+              <span> were removed from this room</span>
+            </span>
+            <span className="flex items-center gap-x-2">
+              <span className="flex items-center gap-x-2">
+                <span className="text-primary">Room name:</span>
+                <span>{nt.roomName}</span>
+              </span>
+              <span className="flex items-center gap-x-2">
+                <span className="text-primary">Room Code:</span>
+                <span>{nt.roomCode}</span>
+              </span>
+            </span>
+          </span>
+        </div>
+
+        <button
+          onClick={handleRead}
+          disabled={loading}
+          className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+        >
+          {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
+        </button>
+      </div>
+    );
+  } else if (nt.type === "quit") {
+    return (
+      <div className="flex w-full items-center px-3 py-2 justify-between shadow shadow-primary my-1 rounded-lg cursor-pointer">
+        <div className="flex items-center gap-1">
+          <Avatar src={nt.creatorDetails.image} />
+          <span className="flex flex-col gap-y">
+            <span className="flex items-center gap-x-2">
+              <span className="capitalize text-lg font-medium text-primary">
+                {nt.creatorDetails.username}
+              </span>
+              <span> exited this room</span>
+            </span>
+            <span className="flex items-center gap-x-2">
+              <span className="flex items-center gap-x-2">
+                <span className="text-primary">Room name:</span>
+                <span>{nt.roomName}</span>
+              </span>
+              <span className="flex items-center gap-x-2">
+                <span className="text-primary">Room Code:</span>
+                <span>{nt.roomCode}</span>
+              </span>
+            </span>
+          </span>
+        </div>
+
+        <button
+          onClick={handleRead}
+          disabled={loading}
+          className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+        >
+          {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
+        </button>
       </div>
     );
   }

@@ -1,4 +1,5 @@
-import { query } from "./_generated/server";
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 import { getAuthUser } from "./users";
 
 export const getMyUnreadNotifications = query({
@@ -12,7 +13,8 @@ export const getMyUnreadNotifications = query({
       .collect();
 
     const filtered = notifications.filter((not) => !not.read);
-
+    // sort using the _creationTime such that the recently created comes first
+    filtered.sort((a, b) => b._creationTime - a._creationTime);
     return filtered;
   },
 });
@@ -45,5 +47,13 @@ export const notificationsAndDetails = query({
     );
 
     return withDetials;
+  },
+});
+
+export const readNotification = mutation({
+  args: { id: v.id("notification") },
+  handler: async (ctx, { id }) => {
+    // const user = await getAuthUser(ctx);
+    await ctx.db.patch(id, { read: true });
   },
 });
