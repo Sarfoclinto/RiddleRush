@@ -150,105 +150,89 @@ export const acceptRoomRequest = mutation({
     // requestId: v.id("roomRequests"),
     roomId: v.id("rooms"),
     creatorId: v.id("users"),
+    notificationId: v.id("notification"),
   },
-  handler: async (ctx, { creatorId, roomId }) => {
-    const request = await ctx.db
-      .query("roomRequests")
-      .withIndex("by_roomId", (q) =>
-        q.eq("roomId", roomId).eq("userId", creatorId)
-      )
-      .filter(
-        (q) =>
-          q.eq(q.field("status"), "pending") &&
-          q.eq(q.field("userId"), creatorId)
-      )
-      .first();
-
-    if (!request) {
-      throw new Error("Request not found");
-    }
-    console.log("getReq: ", request);
-    const requestDetails = await ctx.db.get(request?._id);
-    if (!requestDetails) throw new Error("Request not found");
-    console.log("request: ", requestDetails);
-
-    const room = await ctx.db.get(requestDetails.roomId);
-    if (!room) throw new Error("Room not found");
-
+  handler: async (ctx, { notificationId }) => {
+    const notification = await ctx.db.get(notificationId);
     const user = await getAuthUser(ctx);
 
-    // security: only room host can accept
-    if (String(room.hostId) !== String(user._id)) {
-      throw new Error("Only host can accept join requests");
+    if (!notification) throw new Error("Notification not found");
+
+    if (notification.type !== "request") {
+      throw new Error("Notification is not a join request");
     }
 
-    // 1) mark request accepted
-    await ctx.db.patch(requestDetails._id, { status: "accepted" });
+    if (notification.roomRequestId) {
+      const roomRequest = await ctx.db.get(notification.roomRequestId);
+      if (!roomRequest) throw new Error("Room request not found");
 
-    // 2) compute joinIndex (count existing players)
-    const existing = await ctx.db
-      .query("roomPlayers")
-      .filter((q) => q.eq(q.field("roomId"), requestDetails.roomId))
-      .collect();
-    const joinIndex = existing.length;
+      const room = await ctx.db.get(roomRequest.roomId);
+      if (!room) throw new Error("Room not found");
 
-    // 3) insert into roomPlayers
-    const newPlayer = {
-      roomId: request.roomId,
-      userId: request.userId,
-      ready: false,
-      joinIndex,
-    };
-    await ctx.db.insert("roomPlayers", newPlayer);
+      // security: only room host can accept
+      if (String(room.hostId) !== String(user._id)) {
+        throw new Error("Only host can accept join requests");
+      }
 
-    // 4) recompute random startUser among current players
-    const playersAfterInsert = existing.concat([
-      {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        _id: undefined as any, // placeholder, since the new player is not yet in DB
-        _creationTime: Date.now(), // or 0 as a placeholder
+      // mark the request as accepted
+      await ctx.db.patch(roomRequest._id, { status: "accepted" });
+
+      // 2) compute joinIndex (count existing players)
+      const existing = await ctx.db
+        .query("roomPlayers")
+        .filter((q) => q.eq(q.field("roomId"), roomRequest.roomId))
+        .collect();
+      const joinIndex = existing.length;
+
+      // 3) insert into roomPlayers
+      const newPlayer = {
+        roomId: roomRequest.roomId,
+        userId: roomRequest.userId,
         ready: false,
         joinIndex,
-        userId: requestDetails.userId,
-        roomId: requestDetails.roomId,
-      },
-    ]);
-    const playerIds = playersAfterInsert.map((p) => p.userId);
-    // choose random index
-    const randIndex = Math.floor(Math.random() * playerIds.length);
-    const newStartUser = playerIds[randIndex];
+      };
+      await ctx.db.insert("roomPlayers", newPlayer);
+      console.log("Inserted new player:", newPlayer);
+      console.log("into room:", room);
 
-    // 5) persist to room.startUser so the host's future "Start" uses it
-    await ctx.db.patch(requestDetails.roomId, { startUser: newStartUser });
+      // 4) recompute random startUser among current players
+      const playersAfterInsert = existing.concat([
+        {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          _id: undefined as any, // placeholder, since the new player is not yet in DB
+          _creationTime: Date.now(), // or 0 as a placeholder
+          ready: false,
+          joinIndex,
+          userId: roomRequest.userId,
+          roomId: roomRequest.roomId,
+        },
+      ]);
+      const playerIds = playersAfterInsert.map((p) => p.userId);
+      // choose random index
+      const randIndex = Math.floor(Math.random() * playerIds.length);
+      const newStartUser = playerIds[randIndex];
 
-    await ctx.db.insert("notification", {
-      creator: user._id,
-      reciever: requestDetails.userId,
-      read: false,
-      type: "accepted",
-      roomId: requestDetails.roomId,
-    });
+      // 5) persist to room.startUser so the host's future "Start" uses it
+      await ctx.db.patch(roomRequest.roomId, { startUser: newStartUser });
 
-    // mark that notification as read
-    const notifications = await ctx.db
-      .query("notification")
-      .withIndex("by_room_receiver", (q) =>
-        q.eq("roomId", requestDetails.roomId).eq("reciever", user._id)
-      )
-      .collect();
+      await ctx.db.insert("notification", {
+        creator: user._id,
+        reciever: roomRequest.userId,
+        read: false,
+        type: "accepted",
+        roomId: roomRequest.roomId,
+      });
 
-    await Promise.all(
-      notifications.map(async (notification) => {
-        if (notification) {
-          await ctx.db.patch(notification._id, { read: true });
-        }
-      })
-    );
-    return {
-      ok: true,
-      acceptedUser: requestDetails.userId,
-      startUser: newStartUser,
-    };
+      await ctx.db.patch(notificationId, { read: true });
+
+      return {
+        ok: true,
+        acceptedUser: roomRequest.userId,
+        startUser: newStartUser,
+      };
+    } else {
+      throw new Error("Notification does not have a roomRequestId");
+    }
   },
 });
 

@@ -6,6 +6,7 @@ import { Avatar, Button } from "antd";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { timeAgo } from "@/utils/dateTimeHelper";
 
 const MyNotification = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -33,9 +34,12 @@ const MyNotification = () => {
           </div>
         ) : (
           <div className="flex flex-col gap-3 max-h-[60dvh] scrollbar overflow-y-auto">
-            {notifications.map((not) => (
-              <NotCard key={not._id} nt={not} />
-            ))}
+            {notifications
+              .slice()
+              .sort((a, b) => b._creationTime - a._creationTime)
+              .map((not) => (
+                <NotCard key={not._id} nt={not} />
+              ))}
           </div>
         )}
       </div>
@@ -65,7 +69,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
   const navigate = useNavigate();
   const acceptReq = useMutation(api.rooms.acceptRoomRequest);
   const readMsg = useMutation(api.notification.readNotification);
-  
+
   const handleReadAndLeave = async () => {
     try {
       setLoading(true);
@@ -99,6 +103,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
       await acceptReq({
         creatorId: nt.creator,
         roomId: nt.roomId!,
+        notificationId: nt._id,
       });
     } catch (error) {
       console.error(error);
@@ -122,7 +127,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
                 is requesting to join your Room
               </span>
             </span>
-            <span className="flex items-center gap-x-2">
+            <span className="flex items-center gap-x-2 max-md:text-xs">
               <span className="flex items-center gap-x-2">
                 <span className="text-primary">Name:</span>
                 <span>{nt.roomName ?? "An"}</span>
@@ -136,22 +141,27 @@ const NotCard = ({ nt }: { nt: Notification }) => {
         </div>
 
         {!nt.read ? (
-          <div className="max-md:absolute max-md:top-1 max-md:right-1 lg:flex items-center gap-x-2">
-            <Button
-              size="small"
-              className="!border !bg-black !text-primary border-primary"
-            >
-              Reject
-            </Button>
-            <Button
-              loading={loading}
-              disabled={loading}
-              onClick={handleAccept}
-              size="small"
-              className="!bg-primary !text-white"
-            >
-              Accept
-            </Button>
+          <div className="max-md:absolute max-md:top-1 max-md:right-1 flex flex-col items-center">
+            <div className="lg:flex items-center gap-x-2">
+              <Button
+                size="small"
+                className="!border !bg-black !text-primary border-primary"
+              >
+                Reject
+              </Button>
+              <Button
+                loading={loading}
+                disabled={loading}
+                onClick={handleAccept}
+                size="small"
+                className="!bg-primary !text-white"
+              >
+                Accept
+              </Button>
+            </div>
+            <span className="text-xs text-primary self-end">
+              {timeAgo(nt._creationTime, { short: true })}
+            </span>
           </div>
         ) : (
           <span className="p-2 rounded-full bg-primary/20">
@@ -172,30 +182,37 @@ const NotCard = ({ nt }: { nt: Notification }) => {
               </span>
               <span> have been accepted into room</span>
             </span>
-            <span className="flex items-center gap-x-2">
-              <span className="flex items-center gap-x-2">
-                <span className="text-primary">Room name:</span>
+            <span className="flex items-center gap-x-2 max-md:text-xs">
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Name:</span>
                 <span>{nt.roomName}</span>
               </span>
-              <span className="flex items-center gap-x-2">
-                <span className="text-primary">Room Code:</span>
-                <span>{nt.roomCode}</span>
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Code:</span>
+                <span>{nt.roomCode?.slice(3, 10)}</span>
               </span>
             </span>
           </span>
         </div>
 
-        <button
-          onClick={handleReadAndLeave}
-          disabled={loading}
-          className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
-        >
-          {loading ? (
-            <LoadingDots inline color="#f84565" size={5} />
-          ) : (
-            "Visit room"
-          )}
-        </button>
+        <div className="flex flex-col">
+          <button
+            onClick={handleReadAndLeave}
+            disabled={loading}
+            className={`px-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+          >
+            {loading ? (
+              <LoadingDots inline color="#f84565" size={5} />
+            ) : (
+              <span className="text-xs">
+                Visit <span className="max-md:hidden">room</span>{" "}
+              </span>
+            )}
+          </button>
+          <span className="text-xs text-primary self-end">
+            {timeAgo(nt._creationTime, { short: true })}
+          </span>
+        </div>
       </div>
     );
   } else if (nt.type === "removed") {
@@ -210,26 +227,30 @@ const NotCard = ({ nt }: { nt: Notification }) => {
               </span>
               <span> were removed from this room</span>
             </span>
-            <span className="flex items-center gap-x-2">
-              <span className="flex items-center gap-x-2">
-                <span className="text-primary">Room name:</span>
+            <span className="flex items-center gap-x-2 max-md:text-xs">
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Name:</span>
                 <span>{nt.roomName}</span>
               </span>
-              <span className="flex items-center gap-x-2">
-                <span className="text-primary">Room Code:</span>
-                <span>{nt.roomCode}</span>
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Code:</span>
+                <span>{nt.roomCode?.slice(3, 10)}</span>
               </span>
             </span>
           </span>
         </div>
-
-        <button
-          onClick={handleRead}
-          disabled={loading}
-          className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
-        >
-          {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
-        </button>
+        <div className="flex flex-col">
+          <button
+            onClick={handleRead}
+            disabled={loading}
+            className={`px-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+          >
+            {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
+          </button>
+          <span className="text-xs text-primary self-end">
+            {timeAgo(nt._creationTime, { short: true })}
+          </span>
+        </div>
       </div>
     );
   } else if (nt.type === "quit") {
@@ -244,26 +265,30 @@ const NotCard = ({ nt }: { nt: Notification }) => {
               </span>
               <span> exited this room</span>
             </span>
-            <span className="flex items-center gap-x-2">
-              <span className="flex items-center gap-x-2">
-                <span className="text-primary">Room name:</span>
+            <span className="flex items-center gap-x-2 max-md:text-xs">
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Name:</span>
                 <span>{nt.roomName}</span>
               </span>
-              <span className="flex items-center gap-x-2">
-                <span className="text-primary">Room Code:</span>
-                <span>{nt.roomCode}</span>
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Code:</span>
+                <span>{nt.roomCode?.slice(3, 10)}</span>
               </span>
             </span>
           </span>
         </div>
-
-        <button
-          onClick={handleRead}
-          disabled={loading}
-          className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
-        >
-          {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
-        </button>
+        <div className="flex flex-col">
+          <button
+            onClick={handleRead}
+            disabled={loading}
+            className={`p-2 rounded bg-primary/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+          >
+            {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
+          </button>
+          <span className="text-xs text-primary self-end">
+            {timeAgo(nt._creationTime, { short: true })}
+          </span>
+        </div>
       </div>
     );
   }

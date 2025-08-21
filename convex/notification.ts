@@ -13,9 +13,7 @@ export const getMyUnreadNotifications = query({
       .collect();
 
     const filtered = notifications.filter((not) => !not.read);
-    // sort using the _creationTime such that the recently created comes first
-    filtered.sort((a, b) => b._creationTime - a._creationTime);
-    return filtered;
+    return filtered.sort((a, b) => b._creationTime - a._creationTime);
   },
 });
 
