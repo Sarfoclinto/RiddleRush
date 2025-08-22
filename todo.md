@@ -2,13 +2,6 @@
    (optional: if start is clicked you can also prompt host that the room is not full it the roomPlayer is less than the room maxPlayers).
 4. In the room details page where there are cards, in the room is full and the user clicks on it, toast that the room is full and the user cannot join.
 
-<!-- urgent -->
-
-1. delete all room players
-2. delte all room notitications
-3. delete all room requests
-4. delete all roomplaytimes
-5. delete all room settings
 
 <!-- later -->
 

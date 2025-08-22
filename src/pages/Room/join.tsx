@@ -196,6 +196,13 @@ const JoinRoom = () => {
                     return;
                   }
                   if (room.noOfPlayers >= room.maxPlayers) {
+                    if (alreadyARoomPlayer?.ok) {
+                      if (alreadyARoomPlayer.roomId === room._id) {
+                        navigate(`/room/details/${room._id}`);
+                      }
+                      toast("You are already a player in a room", "info");
+                      return;
+                    }
                     toast("Sorry, room is already full");
                     return;
                   }

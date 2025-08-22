@@ -11,9 +11,10 @@ import CreateRoom from "./pages/Room/create";
 import RoomSettings from "./pages/Room/settings";
 import LoadRiddles from "./pages/Room/load";
 import RoomPlayers from "./pages/Room/details";
-import MyRooms from "./pages/Rooms/my-rooms";
+import MyRooms from "./pages/Me/my-rooms";
 import JoinRoom from "./pages/Room/join";
 import MyNotification from "./pages/Me/notifications";
+import RoomPlaytime from "./pages/Room/playtime";
 
 function App() {
   const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ function App() {
             <Route path="/room/load/:id" element={<LoadRiddles />} />
             <Route path="/room/details/:id" element={<RoomPlayers />} />
             <Route path="/room/join" element={<JoinRoom />} />
+            <Route path="/room/:roomId/playtime/:roomPlaytimeId" element={<RoomPlaytime />} />
 
             {/* me */}
             <Route path="/me/my-rooms" element={<MyRooms />} />

@@ -5,12 +5,16 @@ type DeleteProps = {
   close: () => void;
   action: () => void;
   loading: boolean;
+  title?: string;
+  message?: string;
 };
-const DeletePlaytimeModal = ({
+const DeleteOrQuitModal = ({
   action,
   close,
   isOpen,
   loading,
+  message,
+  title,
 }: DeleteProps) => {
   return (
     <Modal
@@ -23,7 +27,7 @@ const DeletePlaytimeModal = ({
           className="!bg-black !border !border-primary !text-primary"
           onClick={close}
         >
-          Cancel
+          No
         </Button>,
         <Button
           type="primary"
@@ -33,16 +37,20 @@ const DeletePlaytimeModal = ({
           className="!bg-primary !text-white"
           onClick={action}
         >
-          Delete
+          Yes
         </Button>,
       ]}
       className="!border !border-primary !rounded-xl"
-      title={<span className="!text-primary">Delete Playtime</span>}
+      title={
+        <span className="!text-primary">
+          {title ?? "Quit and Delete Playtime"}
+        </span>
+      }
     >
       <p className="lg:text-lg font-medium text-primary">
-        Are you sure you want to delete this playtime?
+        {message ?? "Are you sure you want to quit and delete this playtime?"}
       </p>
     </Modal>
   );
 };
-export default DeletePlaytimeModal;
+export default DeleteOrQuitModal;

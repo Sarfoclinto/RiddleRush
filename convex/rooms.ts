@@ -90,16 +90,25 @@ export const createRoomSettings = mutation({
 });
 
 export const getRoomById = query({
-  args: { id: v.id("rooms") },
-  handler: async (ctx, { id }) => {
+  args: {
+    id: v.id("rooms"),
+    roomPlaytimeId: v.optional(v.id("roomPlaytimes")),
+  },
+  handler: async (ctx, { id, roomPlaytimeId }) => {
     const room = await ctx.db.get(id);
     if (!room) {
       throw new Error("Room not found");
     }
-    const user = await ctx.db.get(room?.hostId);
-    if (!user) {
+    if (roomPlaytimeId) {
+      if (room.playtimeId !== roomPlaytimeId) {
+        throw new Error("Room playtime mismatch");
+      }
+    }
+    const host = await ctx.db.get(room?.hostId);
+    if (!host) {
       throw new Error("User not found");
     }
+    const user = await getAuthUser(ctx);
     const roomSettings = await ctx.db
       .query("roomSettings")
       .withIndex("by_roomId", (q) => q.eq("roomId", room._id))
@@ -107,12 +116,29 @@ export const getRoomById = query({
     if (!roomSettings) {
       throw new Error("Room settings not found");
     }
+
+    const roomPlaytime = await ctx.db.get(room.playtimeId!);
+
+    const readyPlayers = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_ready", (q) => q.eq("roomId", room._id).eq("ready", true))
+      .collect();
+
+    const accpetedPlayers = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_ready", (q) => q.eq("roomId", room._id))
+      .collect();
+
     const category = await ctx.db.get(roomSettings?.riddlesCategory);
     // return { ...room, user };
     return {
       room,
       settings: { ...roomSettings, categoryName: category?.name },
+      host,
       user,
+      roomPlaytime,
+      readyPlayers: readyPlayers.length,
+      acceptedPlayers: accpetedPlayers.length,
     };
   },
 });
@@ -161,8 +187,8 @@ export const updateRoomPlaytimeId = mutation({
 export const acceptRoomRequest = mutation({
   args: {
     // requestId: v.id("roomRequests"),
-    roomId: v.id("rooms"),
-    creatorId: v.id("users"),
+    // roomId: v.id("rooms"),
+    // creatorId: v.id("users"),
     notificationId: v.id("notification"),
   },
   handler: async (ctx, { notificationId }) => {
@@ -249,11 +275,11 @@ export const acceptRoomRequest = mutation({
 
 export const rejectRoomRequest = mutation({
   args: {
-    requestId: v.id("roomRequests"),
-    hostUserId: v.id("users"),
+    // requestId: v.id("roomRequests"),
+    // hostUserId: v.id("users"),
     notificationId: v.id("notification"),
   },
-  handler: async (ctx, { requestId, hostUserId, notificationId }) => {
+  handler: async (ctx, { notificationId }) => {
     const notification = await ctx.db.get(notificationId);
     const user = await getAuthUser(ctx);
 
@@ -276,7 +302,9 @@ export const rejectRoomRequest = mutation({
       }
 
       // mark the request as accepted
-      await ctx.db.patch(roomRequest._id, { status: "rejected" });
+      // or you can delete
+      // await ctx.db.patch(roomRequest._id, { status: "rejected" });
+      await ctx.db.delete(roomRequest._id);
 
       await ctx.db.insert("notification", {
         creator: user._id,
@@ -287,22 +315,10 @@ export const rejectRoomRequest = mutation({
       });
 
       await ctx.db.patch(notificationId, { read: true });
+      return { ok: true, rejectedUser: roomRequest.userId };
+    } else {
+      throw new Error("Notification does not have a roomRequestId");
     }
-
-    const request = await ctx.db.get(requestId);
-    if (!request) throw new Error("Request not found");
-
-    const room = await ctx.db.get(request.roomId);
-    if (!room) throw new Error("Room not found");
-
-    if (String(room.hostId) !== String(hostUserId)) {
-      throw new Error("Only host can reject join requests");
-    }
-
-    // await ctx.db.patch(requestId, { status: "rejected" });
-    // or ctx.db.delete if you prefer
-    await ctx.db.delete(requestId);
-    return { ok: true, rejectedUser: request.userId };
   },
 });
 

@@ -73,7 +73,9 @@ export interface Notification {
 const NotCard = ({ nt }: { nt: Notification }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
   const acceptReq = useMutation(api.rooms.acceptRoomRequest);
+  const rejectReq = useMutation(api.rooms.rejectRoomRequest);
   const readMsg = useMutation(api.notification.readNotification);
 
   const handleReadAndLeave = async () => {
@@ -89,6 +91,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
       setLoading(false);
     }
   };
+
   const handleRead = async () => {
     try {
       setLoading(true);
@@ -107,8 +110,24 @@ const NotCard = ({ nt }: { nt: Notification }) => {
     try {
       setLoading(true);
       await acceptReq({
-        creatorId: nt.creator,
-        roomId: nt.roomId!,
+        // creatorId: nt.creator,
+        // roomId: nt.roomId!,
+        notificationId: nt._id,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (nt.type !== "request") return;
+    try {
+      setLoading(true);
+      await rejectReq({
+        // creatorId: nt.creator,
+        // roomId: nt.roomId!,
         notificationId: nt._id,
       });
     } catch (error) {
@@ -150,6 +169,9 @@ const NotCard = ({ nt }: { nt: Notification }) => {
           <div className="max-md:absolute max-md:top-1 max-md:right-1 flex flex-col items-center">
             <div className="lg:flex items-center gap-x-2">
               <Button
+                onClick={handleReject}
+                loading={loading}
+                disabled={loading}
                 size="small"
                 className="!border !bg-black !text-primary border-primary"
               >
@@ -334,6 +356,44 @@ const NotCard = ({ nt }: { nt: Notification }) => {
                 Visit <span className="max-md:hidden">room</span>{" "}
               </span>
             )}
+          </button>
+          <span className="text-xs text-primary self-end">
+            {timeAgo(nt._creationTime, { short: true })}
+          </span>
+        </div>
+      </div>
+    );
+  } else if (nt.type === "reject") {
+    return (
+      <div className="flex w-full items-center px-3 py-2 justify-between active:bg-violet-400/10 bg-violet-400/10 hover:bg-violet-400/20 shadow shadow-violet-400/20 my-1 rounded-lg cursor-pointer">
+        <div className="flex items-center gap-1">
+          <Avatar src={nt.creatorDetails.image} />
+          <span className="flex flex-col gap-y">
+            <span className="flex items-center gap-x-2">
+              <span className="capitalize text-lg font-medium text-primary">
+                {"You"}
+              </span>
+              <span> were rejected to join room. </span>
+            </span>
+            <span className="flex items-center gap-x-2 max-md:text-xs">
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Name:</span>
+                <span>{nt.roomName}</span>
+              </span>
+              <span className="flex items-center gap-x-1">
+                <span className="text-primary">Code:</span>
+                <span>{nt.roomCode?.slice(3, 10)}</span>
+              </span>
+            </span>
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <button
+            onClick={handleRead}
+            disabled={loading}
+            className={`px-2 rounded bg-violet-500/20 ${loading ? "cursor-no-drop" : "cursor-pointer"}`}
+          >
+            {loading ? <LoadingDots inline color="#f84565" size={5} /> : "read"}
           </button>
           <span className="text-xs text-primary self-end">
             {timeAgo(nt._creationTime, { short: true })}

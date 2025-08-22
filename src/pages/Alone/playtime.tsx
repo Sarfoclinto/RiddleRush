@@ -12,7 +12,7 @@ import { ChevronRightIcon } from "lucide-react";
 import SinglePlayed from "@/components/SinglePlayed";
 import { isAnswerCorrect, shuffle } from "@/utils/riddleFns";
 import { useDisclosure } from "@/hooks/useDisclosure";
-import DeletePlaytimeModal from "./components/DeletePlaytimeModal";
+import DeleteOrQuitModal from "./components/DeleteOrQuitModal";
 // import tick from "/tick.mp3";
 
 const Playtime = () => {
@@ -49,6 +49,8 @@ const Playtime = () => {
   );
 
   const advance = useMutation(api.playtime.advancePlaytime);
+  const completeAndClose = useMutation(api.playtime.completePlaytime);
+
   const sum = useMemo(() => {
     return (
       (playtimes?.corrects?.length || 0) +
@@ -102,8 +104,6 @@ const Playtime = () => {
     }
     // If you use key remount (below), React will remount the timer anyway and it will start fresh.
   }, [riddle?._id, playtimes?.secondsPerRiddle, riddle]);
-
-  const completeAndClose = useMutation(api.playtime.completePlaytime);
 
   if (!playtimes) {
     return (
@@ -340,7 +340,7 @@ const Playtime = () => {
       ) : (
         <LoadingDots color="#f84565" size={30} />
       )}
-      <DeletePlaytimeModal
+      <DeleteOrQuitModal
         action={handleClose}
         close={close}
         isOpen={isOpen}

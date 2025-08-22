@@ -188,7 +188,11 @@ export const requestRoom = mutation({
       .withIndex("by_userId", (q) =>
         q.eq("userId", user._id).eq("roomId", room._id)
       )
-      // .filter((q) => q.eq(q.field("status"), "pending"))
+      .filter(
+        (q) =>
+          q.eq(q.field("status"), "pending") ||
+          q.eq(q.field("status"), "accepted")
+      )
       .first();
 
     if (existing) {
@@ -318,5 +322,39 @@ export const transferOwnership = mutation({
       roomId: roomId,
     });
     return { ok: true, transferred: true, message: "Ownership transferred" };
+  },
+});
+
+export const hasPlayingRoom = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthUser(ctx);
+    if (!user) throw new Error("User not found");
+
+    const roomPlayer = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_user_ready", (q) =>
+        q.eq("userId", user._id).eq("ready", true)
+      )
+      .first();
+
+    if (!roomPlayer) {
+      return { ok: false, message: "You are not a player in any room" };
+    }
+
+    const room = await ctx.db.get(roomPlayer.roomId);
+    if (!room) {
+      return { ok: false, message: "Room not found" };
+    }
+
+    if (room.playtimeId) {
+      if (room.playing) {
+        return { ok: true, roomId: room._id, roomPlaytimeId: room.playtimeId };
+      } else {
+        return { ok: false, message: "No playing room yet" };
+      }
+    } else {
+      return { ok: false, message: "No active playtime in your room" };
+    }
   },
 });

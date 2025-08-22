@@ -82,7 +82,8 @@ export default defineSchema({
           result: v.union(
             v.literal("correct"),
             v.literal("incorrect"),
-            v.literal("skipped")
+            v.literal("skipped"),
+            v.literal("timedOut"),
           ),
         })
       )
@@ -110,7 +111,8 @@ export default defineSchema({
   })
     .index("by_roomId", ["roomId", "userId"])
     .index("by_userId", ["userId", "roomId"])
-    .index("by_ready", ["roomId", "ready"]),
+    .index("by_ready", ["roomId", "ready"])
+    .index("by_user_ready", ["userId", "ready"]),
 
   roomRequests: defineTable({
     roomId: v.id("rooms"),

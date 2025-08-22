@@ -26,6 +26,7 @@ const RoomPlayers = () => {
   const { isOpen, close, open } = useDisclosure();
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<Player | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
@@ -80,6 +81,26 @@ const RoomPlayers = () => {
   const removeUser = useMutation(api.rooms.removeUserFromRoom);
   const toggleReady = useMutation(api.rooms.toggleReady);
   const transferOwnership = useMutation(api.users.transferOwnership);
+  const startGame = useMutation(api.roomPlaytime.onStartGame);
+
+  const handleStart = async () => {
+    try {
+      setStarting(true);
+      const res = await startGame({
+        roomId: id as Id<"rooms">,
+      });
+      if (res.ok) {
+        navigate(`/room/${id}/playtime/${res.playtimeId}`);
+      } else {
+        toast("Sorry, an error occurred", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      toast("Failed to start game", "error");
+    } finally {
+      setStarting(false);
+    }
+  };
 
   const handleToggleReady = async () => {
     try {
@@ -226,7 +247,12 @@ const RoomPlayers = () => {
                   <div>
                     {ownsRoom ? (
                       <div className="flex flex-col items-center justify-center">
-                        <Button className="!bg-primary/20 max-md:!px-3 max-md:!text-xs max-md:!py-1 !px-5 !py-2 !rounded-lg !cursor-pointer !border border-primary hover:!bg-primary/10 active:!bg-primary/30 active:scale-95 transition duration-100 !text-lg !font-medium !text-white">
+                        <Button
+                          loading={starting}
+                          disabled={starting}
+                          onClick={handleStart}
+                          className="!bg-primary/20 max-md:!px-3 max-md:!text-xs max-md:!py-1 !px-5 !py-2 !rounded-lg !cursor-pointer !border border-primary hover:!bg-primary/10 active:!bg-primary/30 active:scale-95 transition duration-100 !text-lg !font-medium !text-white"
+                        >
                           Start Game
                         </Button>
                         <Tooltip title="Click to remove yourself from the room">

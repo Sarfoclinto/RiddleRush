@@ -1,0 +1,59 @@
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65); /* dim behind content */
+  backdrop-filter: blur(4px); /* blur behind content */
+  z-index: 9999;
+  pointer-events: all;
+}
+
+.countdown-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.debug1 {
+  border: 2px solid green;
+}
+
+.count-number {
+  font-weight: 800;
+  font-size: clamp(48px, 14vw, 160px);
+  color: white;
+  user-select: none;
+  /* center text */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  animation: countdown-pop 1000ms cubic-bezier(0.12, 0.75, 0.24, 1) forwards;
+}
+
+/* animation: start large and shrink, then fade slightly at the end so next number feels fresh */
+@keyframes countdown-pop {
+  0% {
+    transform: scale(2);
+    opacity: 1;
+  }
+  65% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.75);
+    opacity: 0.15;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .count-number {
+    animation: none;
+    transform: none;
+    opacity: 1 !important;
+  }
+}

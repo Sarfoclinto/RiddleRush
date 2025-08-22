@@ -101,6 +101,7 @@ export const onStartGame = mutation({
 
     return {
       ok: true,
+      roomId,
       playtimeId: room.playtimeId,
       pointers: pointers,
     };
