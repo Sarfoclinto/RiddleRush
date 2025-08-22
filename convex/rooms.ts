@@ -251,8 +251,44 @@ export const rejectRoomRequest = mutation({
   args: {
     requestId: v.id("roomRequests"),
     hostUserId: v.id("users"),
+    notificationId: v.id("notification"),
   },
-  handler: async (ctx, { requestId, hostUserId }) => {
+  handler: async (ctx, { requestId, hostUserId, notificationId }) => {
+    const notification = await ctx.db.get(notificationId);
+    const user = await getAuthUser(ctx);
+
+    if (!notification) throw new Error("Notification not found");
+
+    if (notification.type !== "request") {
+      throw new Error("Notification is not a join request");
+    }
+
+    if (notification.roomRequestId) {
+      const roomRequest = await ctx.db.get(notification.roomRequestId);
+      if (!roomRequest) throw new Error("Room request not found");
+
+      const room = await ctx.db.get(roomRequest.roomId);
+      if (!room) throw new Error("Room not found");
+
+      // security: only room host can accept
+      if (String(room.hostId) !== String(user._id)) {
+        throw new Error("Only host can accept join requests");
+      }
+
+      // mark the request as accepted
+      await ctx.db.patch(roomRequest._id, { status: "rejected" });
+
+      await ctx.db.insert("notification", {
+        creator: user._id,
+        reciever: roomRequest.userId,
+        read: false,
+        type: "reject",
+        roomId: roomRequest.roomId,
+      });
+
+      await ctx.db.patch(notificationId, { read: true });
+    }
+
     const request = await ctx.db.get(requestId);
     if (!request) throw new Error("Request not found");
 
@@ -263,8 +299,9 @@ export const rejectRoomRequest = mutation({
       throw new Error("Only host can reject join requests");
     }
 
-    await ctx.db.patch(requestId, { status: "rejected" });
+    // await ctx.db.patch(requestId, { status: "rejected" });
     // or ctx.db.delete if you prefer
+    await ctx.db.delete(requestId);
     return { ok: true, rejectedUser: request.userId };
   },
 });

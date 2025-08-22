@@ -118,9 +118,14 @@ const RoomPlayers = () => {
           toast("User has been removed", "success");
         } else if (mode === "terminate") {
           // if the user is the host, we need to transfer ownership
-          await transferOwnership({
+          const res = await transferOwnership({
             roomId: room?._id,
           });
+          if (res.transferred) {
+            toast("Successfully transferred ownership");
+          } else {
+            navigate("/room/join");
+          }
         } else {
           toast("No selected mode", "info");
           //
@@ -180,9 +185,9 @@ const RoomPlayers = () => {
                         setMode("quit");
                         open();
                       }}
-                      className="absolute hover:bg-primary/30 active:scale-95 transition duration-100 active:bg-primary/30 p-2 rounded-full top-2 right-2 bg-primary/20 cursor-pointer"
+                      className="absolute hover:bg-primary/30 active:scale-95 transition duration-100 active:bg-primary/30 p-1.5 rounded-full top-1 right-1 bg-primary/20 cursor-pointer"
                     >
-                      <XIcon className="size-3" />
+                      <XIcon className="size-2" />
                     </div>
                   )}
                   <div className="absolute hover:bg-green-400/30 active:scale-95 transition duration-100 active:bg-green-400/30 p-1 rounded-full top-2 left-2 bg-green-400 cursor-pointer" />
@@ -221,7 +226,7 @@ const RoomPlayers = () => {
                   <div>
                     {ownsRoom ? (
                       <div className="flex flex-col items-center justify-center">
-                        <Button className="!bg-primary/20 max-md:!px-3 max-md:!text-xs max-md:!py-1.5 !px-5 !py-2 !rounded-lg !cursor-pointer !border border-primary hover:!bg-primary/10 active:!bg-primary/30 active:scale-95 transition duration-100 !text-lg !font-medium !text-white">
+                        <Button className="!bg-primary/20 max-md:!px-3 max-md:!text-xs max-md:!py-1 !px-5 !py-2 !rounded-lg !cursor-pointer !border border-primary hover:!bg-primary/10 active:!bg-primary/30 active:scale-95 transition duration-100 !text-lg !font-medium !text-white">
                           Start Game
                         </Button>
                         <Tooltip title="Click to remove yourself from the room">
@@ -242,7 +247,7 @@ const RoomPlayers = () => {
                           onClick={handleToggleReady}
                           loading={toggling}
                           disabled={toggling}
-                          className={`${me.isReady ? "!bg-primary/20" : "!bg-green-400/20"} max-md:!px-3 max-md:!text-xs max-md:!py-1.5 !px-5 !py-2 rounded-lg cursor-pointer !border ${me.isReady ? "!border-primary" : "!border-green-500"} ${me.isReady ? "hover:!bg-primary/10" : "hover:!bg-green-400/10"} active:!bg-green-400/30 !active:scale-95 transition duration-100 !text-lg !font-medium !text-white`}
+                          className={`${me.isReady ? "!bg-primary/20" : "!bg-green-400/20"} max-md:!px-1.5 max-md:!text-xs max-md:!py-1.5 !px-5 !py-2 rounded-lg cursor-pointer !border ${me.isReady ? "!border-primary" : "!border-green-500"} ${me.isReady ? "hover:!bg-primary/10" : "hover:!bg-green-400/10"} active:!bg-green-400/30 !active:scale-95 transition duration-100 !text-lg !font-medium !text-white`}
                         >
                           {me.isReady ? "Cancel" : "Ready???"}
                         </Button>

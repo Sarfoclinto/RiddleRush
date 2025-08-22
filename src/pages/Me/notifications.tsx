@@ -58,7 +58,13 @@ export interface Notification {
   _id: Id<"notification">;
   _creationTime: number;
   roomId?: Id<"rooms"> | undefined;
-  type: "accepted" | "request" | "quit" | "removed" | "ownership_transfer";
+  type:
+    | "accepted"
+    | "request"
+    | "quit"
+    | "removed"
+    | "ownership_transfer"
+    | "reject";
   creator: Id<"users">;
   reciever: Id<"users">;
   read: boolean;

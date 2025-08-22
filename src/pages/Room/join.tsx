@@ -3,7 +3,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useCallback, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Link, useNavigate } from "react-router-dom";
-import { SearchIcon } from "lucide-react";
+import { SendHorizonalIcon } from "lucide-react";
 import { Avatar, Button, message, Modal } from "antd";
 import useScreenSize from "@/hooks/useScreenSize";
 import { useDisclosure } from "@/hooks/useDisclosure";
@@ -98,7 +98,6 @@ const JoinRoom = () => {
     }
   };
 
-
   // Show a loading state while Convex auth is being determined
   if (convexAuthLoading || !rooms) {
     return (
@@ -128,7 +127,7 @@ const JoinRoom = () => {
           {requesting ? (
             <LoadingDots inline color="#f84565" size={7} />
           ) : (
-            <SearchIcon />
+            <SendHorizonalIcon />
           )}
         </button>
       </div>
@@ -153,28 +152,28 @@ const JoinRoom = () => {
             <span className="flex items-center gap-1">
               <div
                 style={{ backgroundColor: "pink" }}
-                className={` rounded-full p-2`}
+                className={` rounded-full p-1`}
               />
               <span className="max-md:text-xs">You own</span>
             </span>
             <span className="flex items-center gap-1">
               <div
                 style={{ backgroundColor: "orange" }}
-                className={` rounded-full p-2`}
+                className={` rounded-full p-1`}
               />
               <span className="max-md:text-xs">Pending</span>
             </span>
             <span className="flex items-center gap-1">
               <div
                 style={{ backgroundColor: "green" }}
-                className={` rounded-full p-2`}
+                className={` rounded-full p-1`}
               />
               <span className="max-md:text-xs">Accpeted</span>
             </span>
             <span className="flex items-center gap-1">
               <div
                 style={{ backgroundColor: "#05df72 " }}
-                className={` rounded-full p-2`}
+                className={` rounded-full p-1`}
               />
               <span className="max-md:text-xs">Match Started</span>
             </span>
@@ -194,6 +193,10 @@ const JoinRoom = () => {
                   }
                   if (room.request === "pending") {
                     toast("You already have a req for this room");
+                    return;
+                  }
+                  if (room.noOfPlayers >= room.maxPlayers) {
+                    toast("Sorry, room is already full");
                     return;
                   }
                   if (alreadyARoomPlayer?.ok) {
@@ -291,14 +294,16 @@ const Notch = ({ req, ishost }: { req: string; ishost?: boolean }) => {
       ? "orange"
       : req === "accepted"
         ? "green"
-        : ishost
-          ? "pink"
-          : "";
+        : req === "rejected"
+          ? "red"
+          : ishost
+            ? "pink"
+            : "";
 
   return (
     <div
       style={{ backgroundColor: color }}
-      className={` rounded-full p-2 absolute top-2 right-2`}
+      className={` rounded-full p-1 absolute top-1 right-1`}
     />
   );
 };

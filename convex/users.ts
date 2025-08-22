@@ -188,7 +188,7 @@ export const requestRoom = mutation({
       .withIndex("by_userId", (q) =>
         q.eq("userId", user._id).eq("roomId", room._id)
       )
-      .filter((q) => q.eq(q.field("status"), "pending"))
+      // .filter((q) => q.eq(q.field("status"), "pending"))
       .first();
 
     if (existing) {
@@ -303,10 +303,11 @@ export const transferOwnership = mutation({
         })
       );
       await ctx.db.delete(roomId);
-      return { ok: true, message: "Room deleted" };
+      return { ok: true, transferred: false, message: "Room deleted" };
     }
     // transfer ownership to the first player
     await ctx.db.patch(roomId, { hostId: notHostPlayer.userId });
+    await ctx.db.patch(notHostPlayer._id, { ready: true });
 
     // create a notification for the new host
     await ctx.db.insert("notification", {
@@ -316,5 +317,6 @@ export const transferOwnership = mutation({
       read: false,
       roomId: roomId,
     });
+    return { ok: true, transferred: true, message: "Ownership transferred" };
   },
 });
