@@ -155,31 +155,6 @@ export const getRoomById = query({
   },
 });
 
-export const roomSetting = query({
-  args: { id: v.id("rooms") },
-  handler: async (ctx, { id }) => {
-    const room = await ctx.db.get(id);
-    if (!room) {
-      throw new Error("Room not found");
-    }
-
-    const settings = await ctx.db
-      .query("roomSettings")
-      .withIndex("by_roomId", (q) => q.eq("roomId", id))
-      .first();
-
-    if (!settings) {
-      throw new Error("Room settings not found");
-    }
-
-    const category = await ctx.db.get(settings?.riddlesCategory);
-    return {
-      room,
-      settings: { ...settings, categoryName: category?.name },
-    };
-  },
-});
-
 export const getRoom = query({
   args: { id: v.id("rooms") },
   handler: async (ctx, { id }) => {
