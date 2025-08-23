@@ -40,7 +40,7 @@ const DeleteOrQuitModal = ({
           Yes
         </Button>,
       ]}
-      className="!border !border-primary !rounded-xl"
+      className="!border !border-primary !rounded-xl !p-0"
       title={
         <span className="!text-primary">
           {title ?? "Quit and Delete Playtime"}

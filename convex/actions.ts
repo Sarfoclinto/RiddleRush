@@ -114,15 +114,18 @@ export const generateDistractors = action({
 export const loadRoomRiddles = action({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, { roomId }) => {
-    const { room, settings } = await ctx.runQuery(api.rooms.getRoomById, {
+    const res = await ctx.runQuery(api.rooms.getRoomById, {
       id: roomId,
     });
+    const room = res?.room;
+    const settings = res?.settings;
+
     if (!room) {
       throw new Error("Room not found");
     }
     const riddles = await ctx.runAction(api.riddles.getRiddles, {
       category: settings?.categoryName,
-      numberOfRiddles: settings?.numberOfRiddles,
+      numberOfRiddles: settings?.numberOfRiddles || 0,
     });
 
     // loop through riddles and save them returning their ids

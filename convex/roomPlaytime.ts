@@ -5,6 +5,7 @@ import {
   computeRiddlePointersFromIndex,
   computeUserPointersFromIndex,
 } from "./utils/fns";
+import type { Id } from "./_generated/dataModel";
 
 export const createRoomPlaytime = mutation({
   args: {
@@ -108,69 +109,244 @@ export const onStartGame = mutation({
   },
 });
 
-export const advanceRoomPlaytime = mutation({
+// export const advanceRoomPlaytime = mutation({
+//   args: {
+//     playtimeId: v.id("roomPlaytimes"),
+//     result: v.optional(
+//       v.union(
+//         v.literal("correct"),
+//         v.literal("incorrect"),
+//         v.literal("skipped"),
+//         v.literal("timedOut")
+//       )
+//     ),
+//   },
+//   handler: async (ctx, { playtimeId, result }) => {
+//     // 1) fetch playtime
+//     const playtime = await ctx.db.get(playtimeId);
+//     if (!playtime) throw new Error("Playtime not found");
+
+//     // if (!playtime.playing) {
+//     //   return { ok: false, message: "Playtime is not playing" };
+//     // }
+
+//     // 2) load players for this room (to rotate turns)
+//     const playersQuery = await ctx.db
+//       .query("roomPlayers")
+//       // .filter((q) => q.eq(q.field("roomId"), playtime.roomId))
+//       .withIndex("by_ready", (q) =>
+//         q.eq("roomId", playtime.roomId).eq("ready", true)
+//       )
+//       .collect();
+//     const playerIds = playersQuery.map((p) => p.userId);
+
+//     if (playerIds.length === 0) {
+//       throw new Error("No players found for this room");
+//     }
+
+//     // 3) determine current user and its index
+//     const currentUserId = playtime.currentUser;
+//     let currentUserIndex = currentUserId
+//       ? playerIds.findIndex((id) => String(id) === String(currentUserId))
+//       : -1;
+
+//     // If currentUser undefined, start with first player
+//     if (currentUserIndex === -1) currentUserIndex = 0;
+
+//     const nextUserIndex = (currentUserIndex + 1) % playerIds.length;
+
+//     // 4) find current riddle index inside playtime.riddles (by id)
+//     const riddlesArr = playtime.riddles || [];
+//     const currentRiddleId = playtime.currentRiddle;
+//     const currentRiddleIndex = currentRiddleId
+//       ? riddlesArr.findIndex((r) => String(r._id) === String(currentRiddleId))
+//       : -1;
+
+//     // 5) append a play entry recording the attempt (if there's a current riddle)
+//     const newPlayEntry =
+//       currentRiddleId !== undefined && currentRiddleId !== null
+//         ? {
+//             riddleId: currentRiddleId,
+//             done: true,
+//             playedBy: playerIds[currentUserIndex],
+//             turnIndex: playtime.play?.length ?? 0,
+//             result: result ?? "skipped",
+//           }
+//         : null;
+
+//     // 6) mark current riddle done in riddles array
+//     const newRiddles = riddlesArr.slice();
+//     if (currentRiddleIndex >= 0) {
+//       newRiddles[currentRiddleIndex] = {
+//         ...newRiddles[currentRiddleIndex],
+//         done: true,
+//       };
+//     }
+
+//     // 7) compute next riddle pointers
+//     // choose next not-done riddle index after currentRiddleIndex
+//     let nextRiddleIdx = -1;
+//     for (let i = currentRiddleIndex + 1; i < newRiddles.length; i++) {
+//       if (!newRiddles[i].done) {
+//         nextRiddleIdx = i;
+//         break;
+//       }
+//     }
+//     // fallback: search from beginning (circular) if you want round-robin riddles; here we'll treat it linear
+//     // compute pointers for the next current riddle index
+//     const pointerObj = computeRiddlePointersFromIndex(
+//       newRiddles,
+//       nextRiddleIdx === -1 ? null : nextRiddleIdx
+//     );
+
+//     // 8) prepare DB patch
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     const patch: any = {
+//       riddles: newRiddles,
+//       // append to play array if newPlayEntry
+//       play: playtime.play
+//         ? playtime.play.concat(newPlayEntry ? [newPlayEntry] : [])
+//         : newPlayEntry
+//           ? [newPlayEntry]
+//           : undefined,
+//       previousUser: playerIds[currentUserIndex],
+//       currentUser: playerIds[nextUserIndex],
+//       nextUser: playerIds[(nextUserIndex + 1) % playerIds.length],
+//       previousRiddle: playtime.currentRiddle,
+//       currentRiddle: pointerObj.currentRiddle,
+//       nextRiddle: pointerObj.nextRiddle,
+//     };
+
+//     // 9) if there is no next riddle (finished), mark completed and stop playing
+//     if (!pointerObj.currentRiddle) {
+//       // patch.playing = false;
+//       patch.completed = true;
+//       patch.currentRiddle = undefined;
+//       patch.nextRiddle = undefined;
+//     }
+
+//     // 10) update DB
+//     await ctx.db.patch(playtimeId, patch);
+
+//     // 11) return updated pointers
+//     return {
+//       ok: true,
+//       playtimeId,
+//       pointers: {
+//         previousUser: patch.previousUser,
+//         currentUser: patch.currentUser,
+//         nextUser: patch.nextUser,
+//         previousRiddle: patch.previousRiddle,
+//         currentRiddle: patch.currentRiddle,
+//         nextRiddle: patch.nextRiddle,
+//         completed: patch.completed ?? false,
+//       },
+//     };
+//   },
+// });
+
+export const advancePlaytime = mutation({
   args: {
     playtimeId: v.id("roomPlaytimes"),
     result: v.optional(
       v.union(
         v.literal("correct"),
         v.literal("incorrect"),
-        v.literal("skipped")
+        v.literal("skipped"),
+        v.literal("timedOut")
       )
     ),
   },
   handler: async (ctx, { playtimeId, result }) => {
-    // 1) fetch playtime
+    // 0) optimistic locking / transaction note:
+    // If your DB supports transactions or conditional patching (if-match / _rev), use that here.
+    // Otherwise multiple simultaneous calls can clobber each other.
+    // Example: const playtime = await ctx.db.get(playtimeId, { ifMatch: knownRev });
+
+    // 1) fetch current playtime
     const playtime = await ctx.db.get(playtimeId);
     if (!playtime) throw new Error("Playtime not found");
 
-    // if (!playtime.playing) {
-    //   return { ok: false, message: "Playtime is not playing" };
-    // }
+    if (!playtime.roomId) throw new Error("Playtime has no roomId");
 
-    // 2) load players for this room (to rotate turns)
-    const playersQuery = await ctx.db
+    // 2) load players for this room (only ready players) and sort by joinIndex
+    const playersRaw = await ctx.db
       .query("roomPlayers")
-      .filter((q) => q.eq(q.field("roomId"), playtime.roomId))
+      .withIndex("by_ready", (q) =>
+        q.eq("roomId", playtime.roomId).eq("ready", true)
+      )
       .collect();
-    const playerIds = playersQuery.map((p) => p.userId);
 
-    if (playerIds.length === 0) {
+    if (!playersRaw || playersRaw.length === 0) {
       throw new Error("No players found for this room");
     }
 
-    // 3) determine current user and its index
+    // stable turn order: sort by joinIndex (fall back to userId string)
+    const players = playersRaw.slice().sort((a, b) => {
+      const ai = (a.joinIndex ?? Number.MAX_SAFE_INTEGER) as number;
+      const bi = (b.joinIndex ?? Number.MAX_SAFE_INTEGER) as number;
+      if (ai !== bi) return ai - bi;
+      return String(a.userId).localeCompare(String(b.userId));
+    });
+
+    const playerIds = players.map((p) => p.userId);
+
+    // 3) find current user index (if currentUser exists) or -1
     const currentUserId = playtime.currentUser;
     let currentUserIndex = currentUserId
       ? playerIds.findIndex((id) => String(id) === String(currentUserId))
       : -1;
 
-    // If currentUser undefined, start with first player
-    if (currentUserIndex === -1) currentUserIndex = 0;
+    // If currentUser is not found in player list (player left), treat as -1
+    if (currentUserIndex === -1) {
+      // first turn or mismatch -> we do NOT set previousUser to a real id
+      currentUserIndex = 0;
+    }
 
     const nextUserIndex = (currentUserIndex + 1) % playerIds.length;
 
     // 4) find current riddle index inside playtime.riddles (by id)
-    const riddlesArr = playtime.riddles || [];
+    const riddlesArr = Array.isArray(playtime.riddles) ? playtime.riddles : [];
     const currentRiddleId = playtime.currentRiddle;
-    const currentRiddleIndex = currentRiddleId
-      ? riddlesArr.findIndex((r) => String(r._id) === String(currentRiddleId))
-      : -1;
+    const currentRiddleIndex =
+      currentRiddleId != null
+        ? riddlesArr.findIndex((r) => String(r._id) === String(currentRiddleId))
+        : -1;
 
-    // 5) append a play entry recording the attempt (if there's a current riddle)
-    const newPlayEntry =
-      currentRiddleId !== undefined && currentRiddleId !== null
-        ? {
-            riddleId: currentRiddleId,
-            done: true,
-            playedBy: playerIds[currentUserIndex],
-            turnIndex: playtime.play?.length ?? 0,
-            result: result ?? "skipped",
-          }
-        : null;
+    // 5) only append a play entry if there is a current riddle to record
+    let newPlayEntry: null | {
+      riddleId: Id<"riddles">;
+      done: true;
+      playedBy: Id<"users">;
+      turnIndex: number;
+      result: "correct" | "incorrect" | "skipped" | "timedOut";
+    } = null;
 
-    // 6) mark current riddle done in riddles array
-    const newRiddles = riddlesArr.slice();
+    if (currentRiddleIndex >= 0) {
+      // pick the actual player who made the move:
+      // prefer playtime.currentUser if present and still in the player list,
+      // otherwise fall back to playerIds[currentUserIndex]
+      const playedBy =
+        currentUserId &&
+        playerIds.some((id) => String(id) === String(currentUserId))
+          ? currentUserId
+          : playerIds[currentUserIndex];
+
+      newPlayEntry = {
+        riddleId: currentRiddleId as Id<"riddles">,
+        done: true,
+        playedBy,
+        turnIndex: Array.isArray(playtime.play) ? playtime.play.length : 0,
+        result: (result ?? "skipped") as
+          | "correct"
+          | "incorrect"
+          | "skipped"
+          | "timedOut",
+      };
+    }
+
+    // 6) mark current riddle done in riddles array (if exists)
+    const newRiddles = riddlesArr.map((r) => ({ ...r })); // shallow clone
     if (currentRiddleIndex >= 0) {
       newRiddles[currentRiddleIndex] = {
         ...newRiddles[currentRiddleIndex],
@@ -178,35 +354,44 @@ export const advanceRoomPlaytime = mutation({
       };
     }
 
-    // 7) compute next riddle pointers
-    // choose next not-done riddle index after currentRiddleIndex
-    let nextRiddleIdx = -1;
-    for (let i = currentRiddleIndex + 1; i < newRiddles.length; i++) {
-      if (!newRiddles[i].done) {
-        nextRiddleIdx = i;
-        break;
-      }
-    }
-    // fallback: search from beginning (circular) if you want round-robin riddles; here we'll treat it linear
-    // compute pointers for the next current riddle index
+    // 7) compute next riddle pointers (start search from currentRiddleIndex+1)
+    // If currentRiddleIndex is -1, computeRiddlePointersFromIndex will pick first not-done
+    const nextStartIndex =
+      currentRiddleIndex >= 0 ? currentRiddleIndex + 1 : null;
     const pointerObj = computeRiddlePointersFromIndex(
       newRiddles,
-      nextRiddleIdx === -1 ? null : nextRiddleIdx
+      nextStartIndex
     );
 
     // 8) prepare DB patch
+    const playArray =
+      newPlayEntry != null
+        ? Array.isArray(playtime.play)
+          ? playtime.play.concat([newPlayEntry])
+          : [newPlayEntry]
+        : playtime.play; // keep as-is if no new entry
+
+    // previousUser should be undefined on the very first recorded play
+    const previousUserToSet =
+      playtime.currentUser &&
+      playerIds.some((id) => String(id) === String(playtime.currentUser))
+        ? playtime.currentUser
+        : undefined;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const patch: any = {
       riddles: newRiddles,
-      // append to play array if newPlayEntry
-      play: playtime.play
-        ? playtime.play.concat(newPlayEntry ? [newPlayEntry] : [])
-        : newPlayEntry
-          ? [newPlayEntry]
-          : undefined,
-      previousUser: playerIds[currentUserIndex],
-      currentUser: playerIds[nextUserIndex],
-      nextUser: playerIds[(nextUserIndex + 1) % playerIds.length],
+      play: playArray,
+      previousUser: previousUserToSet,
+      // rotate users only if there was a current riddle (i.e. we actually advanced a turn)
+      currentUser:
+        currentRiddleIndex >= 0
+          ? playerIds[nextUserIndex]
+          : playtime.currentUser,
+      nextUser:
+        currentRiddleIndex >= 0
+          ? playerIds[(nextUserIndex + 1) % playerIds.length]
+          : playtime.nextUser,
       previousRiddle: playtime.currentRiddle,
       currentRiddle: pointerObj.currentRiddle,
       nextRiddle: pointerObj.nextRiddle,
@@ -214,13 +399,14 @@ export const advanceRoomPlaytime = mutation({
 
     // 9) if there is no next riddle (finished), mark completed and stop playing
     if (!pointerObj.currentRiddle) {
-      patch.playing = false;
+      // patch.playing = false;
       patch.completed = true;
       patch.currentRiddle = undefined;
       patch.nextRiddle = undefined;
     }
 
     // 10) update DB
+    // IMPORTANT: Use a transaction or conditional patch if your DB supports it to avoid races.
     await ctx.db.patch(playtimeId, patch);
 
     // 11) return updated pointers
@@ -231,9 +417,11 @@ export const advanceRoomPlaytime = mutation({
         previousUser: patch.previousUser,
         currentUser: patch.currentUser,
         nextUser: patch.nextUser,
+
         previousRiddle: patch.previousRiddle,
         currentRiddle: patch.currentRiddle,
         nextRiddle: patch.nextRiddle,
+
         completed: patch.completed ?? false,
       },
     };

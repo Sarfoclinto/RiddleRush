@@ -348,6 +348,13 @@ export const hasPlayingRoom = query({
     }
 
     if (room.playtimeId) {
+      const roomPlaytime = await ctx.db.get(room.playtimeId);
+      if (!roomPlaytime) {
+        return { ok: false, message: "No playtime for room" };
+      }
+      if (roomPlaytime.completed) {
+        return { ok: false, message: "Playtime is completed" };
+      }
       if (room.playing) {
         return { ok: true, roomId: room._id, roomPlaytimeId: room.playtimeId };
       } else {

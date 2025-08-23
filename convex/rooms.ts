@@ -124,6 +124,17 @@ export const getRoomById = query({
       .withIndex("by_ready", (q) => q.eq("roomId", room._id).eq("ready", true))
       .collect();
 
+    const readyPlayersDetails = await Promise.all(
+      readyPlayers.map(async (pl) => {
+        const user = await ctx.db.get(pl.userId);
+        return {
+          ...pl,
+          user,
+          ishost: user !== null ? user._id == room.hostId : false,
+        };
+      })
+    );
+
     const accpetedPlayers = await ctx.db
       .query("roomPlayers")
       .withIndex("by_ready", (q) => q.eq("roomId", room._id))
@@ -137,8 +148,34 @@ export const getRoomById = query({
       host,
       user,
       roomPlaytime,
+      readyPlayersDetails,
       readyPlayers: readyPlayers.length,
       acceptedPlayers: accpetedPlayers.length,
+    };
+  },
+});
+
+export const roomSetting = query({
+  args: { id: v.id("rooms") },
+  handler: async (ctx, { id }) => {
+    const room = await ctx.db.get(id);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    const settings = await ctx.db
+      .query("roomSettings")
+      .withIndex("by_roomId", (q) => q.eq("roomId", id))
+      .first();
+
+    if (!settings) {
+      throw new Error("Room settings not found");
+    }
+
+    const category = await ctx.db.get(settings?.riddlesCategory);
+    return {
+      room,
+      settings: { ...settings, categoryName: category?.name },
     };
   },
 });

@@ -182,3 +182,17 @@ export type NotificationBellProps = {
   soundPlayMode?: SoundPlayMode; // "once" | "interval" | "everyShake"
   soundInterval?: number; // ms for "interval" mode (default 5000)
 };
+
+export type Size = "sm" | "md" | "lg" | number;
+
+export interface GlowingTextProps {
+  isPlaying: boolean;
+  text?: string;
+  glowColor?: string; // any CSS color (hex, rgb, named)
+  pulseDuration?: number; // seconds (e.g. 1.2)
+  size?: Size; // 'sm' | 'md' | 'lg' | numeric px
+  className?: string;
+  style?: React.CSSProperties;
+  // If true the wrapper is fixed bottom center. If false, it will flow inline where placed.
+  fixedBottom?: boolean;
+}

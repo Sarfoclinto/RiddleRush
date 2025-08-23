@@ -15,6 +15,7 @@ import MyRooms from "./pages/Me/my-rooms";
 import JoinRoom from "./pages/Room/join";
 import MyNotification from "./pages/Me/notifications";
 import RoomPlaytime from "./pages/Room/playtime";
+import ScorePage from "./pages/Room/ScorePage";
 
 function App() {
   const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ function App() {
             <Route path="/room/details/:id" element={<RoomPlayers />} />
             <Route path="/room/join" element={<JoinRoom />} />
             <Route path="/room/:roomId/playtime/:roomPlaytimeId" element={<RoomPlaytime />} />
+            <Route path="/room/:roomId/scores" element={<ScorePage />} />
 
             {/* me */}
             <Route path="/me/my-rooms" element={<MyRooms />} />

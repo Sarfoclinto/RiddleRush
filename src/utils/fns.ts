@@ -1,4 +1,5 @@
 import type { Segment } from "@/types/common";
+import type { Id } from "myconvex/_generated/dataModel";
 
 export const capitalize = (str: string): string => {
   // use regex
@@ -58,4 +59,63 @@ export function calcTotal(segments: Segment[]) {
   let total = 0;
   for (const s of segments) total += Math.max(0, Number(s.value) || 0);
   return total;
+}
+
+// types (match your schema)
+type Result = "correct" | "incorrect" | "skipped" | "timedOut";
+
+type PlayEntry = {
+  riddleId: Id<"riddles">; // or string if you prefer
+  done: boolean;
+  playedBy: Id<"users">;
+  turnIndex: number;
+  result: Result;
+};
+
+type Scores = {
+  correct: number;
+  incorrect: number;
+  skipped: number;
+  timedOut: number;
+  total: number; // sum of the four above (useful)
+};
+
+export function computeScores(
+  plays?: PlayEntry[] | null,
+  playedBy?: Id<"users">
+): Scores {
+  const initial: Scores = {
+    correct: 0,
+    incorrect: 0,
+    skipped: 0,
+    timedOut: 0,
+    total: 0,
+  };
+
+  if (!plays || plays.length === 0) return initial;
+
+  return plays.reduce((acc, p) => {
+    // optionally filter by player
+    if (playedBy && p.playedBy !== playedBy) return acc;
+
+    switch (p.result) {
+      case "correct":
+        acc.correct++;
+        break;
+      case "incorrect":
+        acc.incorrect++;
+        break;
+      case "skipped":
+        acc.skipped++;
+        break;
+      case "timedOut":
+        acc.timedOut++;
+        break;
+      default:
+        // this should never happen if types are enforced, but safe-guard anyway
+        break;
+    }
+    acc.total++;
+    return acc;
+  }, initial);
 }
