@@ -18,9 +18,9 @@ const Layout = () => {
     pathname.includes("room") && pathname.includes("playtime");
   useEffect(() => {
     if (hasLiveRoom && hasLiveRoom.ok) {
-      navigate(
-        `/room/${hasLiveRoom.roomId}/playtime/${hasLiveRoom.roomPlaytimeId}`
-      );
+      // navigate(
+      //   `/room/${hasLiveRoom.roomId}/playtime/${hasLiveRoom.roomPlaytimeId}`
+      // );
     }
   }, [hasLiveRoom, navigate]);
 
