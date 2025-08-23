@@ -38,8 +38,14 @@ function App() {
             <Route path="/room/load/:id" element={<LoadRiddles />} />
             <Route path="/room/details/:id" element={<RoomPlayers />} />
             <Route path="/room/join" element={<JoinRoom />} />
-            <Route path="/room/:roomId/playtime/:roomPlaytimeId" element={<RoomPlaytime />} />
-            <Route path="/room/:roomId/scores" element={<ScorePage />} />
+            <Route
+              path="/room/:roomId/playtime/:roomPlaytimeId"
+              element={<RoomPlaytime />}
+            />
+            <Route
+              path="/room/scores/:roomId/:roomPlaytimeId"
+              element={<ScorePage />}
+            />
 
             {/* me */}
             <Route path="/me/my-rooms" element={<MyRooms />} />

@@ -155,9 +155,9 @@ const RoomPlaytime = () => {
 
   useEffect(() => {
     if (roomData?.roomPlaytime?.completed) {
-      navigate(`/room/${roomId}/scores`);
+      navigate(`/room/scores/${roomId}/${roomPlaytimeId}`);
     }
-  }, [navigate, roomData?.roomPlaytime?.completed, roomId]);
+  }, [navigate, roomData?.roomPlaytime?.completed, roomId, roomPlaytimeId]);
 
   // AUTO-SKIP function used by timer onComplete and can be reused by Skip button
   const autoSkip = useCallback(
@@ -370,7 +370,7 @@ const RoomPlaytime = () => {
                   autoStart={false}
                   duration={roomData.settings.riddleTimeSpan}
                   muted
-                  // onComplete={handleTimedOut}
+                  onComplete={handleTimedOut}
                   fillColor="#f84565"
                   trackColor="#000000"
                   className="border border-primary"
