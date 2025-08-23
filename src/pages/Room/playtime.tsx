@@ -18,7 +18,7 @@ import GlowingText from "@/components/GlowingText";
 import { isAnswerCorrect } from "@/utils/riddleFns";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import DeleteOrQuitModal from "../Alone/components/DeleteOrQuitModal";
-// import { capitalize } from "@/utils/fns";
+import { capitalize } from "@/utils/fns";
 
 const SECONDS = 5;
 const RoomPlaytime = () => {
@@ -99,6 +99,7 @@ const RoomPlaytime = () => {
 
   // mutations
   const advance = useMutation(api.roomPlaytime.advancePlaytime);
+  const quitAndLeave = useMutation(api.users.quitAndLeaveRoom);
 
   const getAcceptedAnswers = (): string[] => {
     const raw = riddle?.answer;
@@ -143,7 +144,7 @@ const RoomPlaytime = () => {
 
   useEffect(() => {
     if (turn && turn.user) {
-      // toast(`It is ${capitalize(turn.user?.username)}'s turn`);
+      toast(`It is ${capitalize(turn.user?.username)}'s turn`, "info");
     }
   }, [riddle?._id, toast, turn]);
 
@@ -155,6 +156,7 @@ const RoomPlaytime = () => {
 
   useEffect(() => {
     if (roomData?.roomPlaytime?.completed) {
+      localStorage.removeItem("countdownDone");
       navigate(`/room/scores/${roomId}/${roomPlaytimeId}`);
     }
   }, [navigate, roomData?.roomPlaytime?.completed, roomId, roomPlaytimeId]);
@@ -285,6 +287,10 @@ const RoomPlaytime = () => {
   const handleQuit = async () => {
     try {
       setQuiting(true);
+      const res = await quitAndLeave({
+        roomId: roomData.room._id,
+      });
+      toast(res.message);
       close();
       navigate("/hoom");
     } catch (error) {
@@ -525,15 +531,17 @@ const RoomPlaytime = () => {
         </div>
       )}
       {isMyTurn && (
-        <GlowingText
-          isPlaying={isMyTurn}
-          text="It's your turn"
-          glowColor="#00d4ff" // optional
-          pulseDuration={1.25} // optional (seconds)
-          size="md" // 'sm' | 'md' | 'lg' | number(px)
-          fixedBottom={true} // set false if you want inline behavior
-          className="!cursor-pointer"
-        />
+        <div className="mx-auto mt-auto">
+          <GlowingText
+            isPlaying={isMyTurn}
+            text="It's your turn"
+            glowColor="#00d4ff" // optional
+            pulseDuration={1.25} // optional (seconds)
+            size="md" // 'sm' | 'md' | 'lg' | number(px)
+            fixedBottom={false} // set false if you want inline behavior
+            className="!cursor-pointer"
+          />
+        </div>
       )}
 
       <DeleteOrQuitModal

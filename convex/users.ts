@@ -365,3 +365,64 @@ export const hasPlayingRoom = query({
     }
   },
 });
+
+export const quitAndLeaveRoom = mutation({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    // get room
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+    const user = await getAuthUser(ctx);
+
+    // get his room player id
+    const roomPlayer = await ctx.db
+      .query("roomPlayers")
+      .withIndex("by_user_ready", (q) =>
+        q.eq("userId", user._id).eq("ready", true)
+      )
+      .first();
+
+    if (!roomPlayer) {
+      return {
+        ok: false,
+        deleted: false,
+        quit: false,
+        message: "You are not a player in any room",
+      };
+    }
+    // first mark him as not ready
+    await ctx.db.patch(roomPlayer._id, { ready: false });
+
+    // then delete him from the room
+    await ctx.db.delete(roomPlayer._id);
+
+    const roomRequests = await ctx.db
+      .query("roomRequests")
+      .withIndex("by_userId", (q) =>
+        q.eq("userId", user._id).eq("roomId", room._id)
+      )
+      .collect();
+
+    if (roomRequests.length === 0) {
+      return {
+        ok: false,
+        deleted: false,
+        quit: false,
+        message: "You are not a player in any room",
+      };
+    }
+
+    // also delete his room request
+    await Promise.all(
+      roomRequests.map(async (rq) => {
+        await ctx.db.delete(rq._id);
+      })
+    );
+    return {
+      ok: true,
+      deleted: true,
+      quit: true,
+      message: "You have successfully quit and left the room",
+    };
+  },
+});
