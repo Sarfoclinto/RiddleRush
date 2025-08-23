@@ -114,7 +114,7 @@ export const generateDistractors = action({
 export const loadRoomRiddles = action({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, { roomId }) => {
-    const res = await ctx.runQuery(api.rooms.getRoomById, {
+    const res = await ctx.runQuery(api.rooms.roomSetting, {
       id: roomId,
     });
     const room = res?.room;
