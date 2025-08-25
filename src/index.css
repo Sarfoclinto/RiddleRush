@@ -5,7 +5,9 @@
   --color-primary: #f84565;
   --color-primary-dull: #d63854;
 }
-
+.hello{
+  color: #f845669c;
+}
 * {
   font-family: "Outfit", sans-serif;
   scrollbar-width: thin;

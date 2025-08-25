@@ -11,6 +11,9 @@ import BlurCircle from "@/components/BlurCircle";
 import PlayerScoreCard from "@/components/PlayerScoreCard";
 import { buildRankingTable } from "@/utils/ranking";
 import { buildMobileConfigFromRankingRows } from "@/utils/mobileRanking";
+import ClapAudio from "@/components/ClapAudio";
+import FallingParticles from "@/components/FallingParticles";
+import clap from "/clap.mp3";
 
 const { useBreakpoint } = Grid;
 const ScorePage = () => {
@@ -72,6 +75,9 @@ const ScorePage = () => {
       </div>
     );
   }
+  // durations in milliseconds
+  const clapDuration = 7500;
+  const particlesDuration = 7500;
 
   return (
     <div className="w-full flex flex-col items-center h-full">
@@ -133,7 +139,7 @@ const ScorePage = () => {
       </span>
 
       <div className="w-full max-h-full overflow-auto scrollbar py-3 flex flex-wrap justify-center gap-7">
-        {[...otherUsers]?.map((pl, index) => (
+        {otherUsers?.map((pl, index) => (
           <PlayerScoreCard plays={plays} pl={pl} key={index} />
         ))}
       </div>
@@ -170,6 +176,30 @@ const ScorePage = () => {
           right="20px"
           size={isMd ? "xl" : "md"}
           animate
+        />
+        <ClapAudio
+          src={clap}
+          durationMs={clapDuration}
+          volume={0.8}
+          autoplay={true}
+          onEnd={() => {
+            // no-op or analytics
+          }}
+        />
+        <FallingParticles
+          durationMs={particlesDuration}
+          particleCount={45}
+          colors={[
+            "#FF4D6D",
+            "#FFB86B",
+            "#FFD36B",
+            "#6BFFB8",
+            "#6BC7FF",
+            "#A56BFF",
+          ]}
+          sizeRange={[14, 34]}
+          zIndex={1200}
+          fullScreen={true}
         />
       </>
     </div>

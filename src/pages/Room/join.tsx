@@ -2,17 +2,23 @@ import LoadingDots from "@/components/LoadingDots";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useCallback, useState } from "react";
 import { api } from "../../../convex/_generated/api";
-import { Link, useNavigate } from "react-router-dom";
-import { SendHorizonalIcon } from "lucide-react";
-import { Avatar, Button, message, Modal } from "antd";
-import useScreenSize from "@/hooks/useScreenSize";
+import { Link, useNavigate, type NavigateFunction } from "react-router-dom";
+import {
+  CircleQuestionMark,
+  CrownIcon,
+  PlayIcon,
+  SendHorizonalIcon,
+  UsersIcon,
+} from "lucide-react";
+import { Button, message, Modal, Tooltip } from "antd";
+// import useScreenSize from "@/hooks/useScreenSize";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import type { Id } from "myconvex/_generated/dataModel";
 
 const JoinRoom = () => {
   const [code, setCode] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
-  const { isMd } = useScreenSize();
+  // const { isMd } = useScreenSize();
   const [requesting, setRequesting] = useState(false);
   const { isOpen, open, close } = useDisclosure();
   const [selectedRoom, SetSelectedRoom] = useState<Room | null>(null);
@@ -44,6 +50,11 @@ const JoinRoom = () => {
     api.users.alreadyARoomPlayer,
     convexAuthLoading ? "skip" : {}
   );
+
+  const onFinish = (room: Room) => {
+    SetSelectedRoom(room);
+    open();
+  };
 
   const onRequest = async () => {
     if (!selectedRoom) {
@@ -179,7 +190,7 @@ const JoinRoom = () => {
             </span>
           </span>
 
-          <div className="flex mt-5 flex-wrap items-center justify-center w-full max-h-[calc(100dvh-40dvh)] overflow-y-auto scrollbar gap-3">
+          {/* <div className="flex mt-5 flex-wrap items-center justify-center w-full max-h-[calc(100dvh-40dvh)] overflow-y-auto scrollbar gap-3">
             {rooms.map((room) => (
               <div
                 onClick={() => {
@@ -244,6 +255,18 @@ const JoinRoom = () => {
                 <Notch req={room.request} ishost={room.ishost} />
               </div>
             ))}
+          </div> */}
+          <div className="flex flex-col mt-5 items-center py-3 w-full max-h-[calc(100dvh-40dvh)] overflow-y-auto scrollbar gap-3">
+            {rooms.map((room) => (
+              <RoomCard
+                room={room}
+                roomPlayer={alreadyARoomPlayer}
+                key={room._id}
+                onFinish={() => onFinish(room)}
+                toast={toast}
+                navigate={navigate}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -284,7 +307,17 @@ const JoinRoom = () => {
 export default JoinRoom;
 
 export interface Room {
+  host: {
+    _id: Id<"users">;
+    _creationTime: number;
+    email?: string | undefined;
+    fullname?: string | undefined;
+    clerkId?: string | undefined;
+    image?: string | undefined;
+    username: string;
+  } | null;
   _id: Id<"rooms">;
+  noOfRiddles: number;
   code: string;
   name: string | undefined;
   hostId: Id<"users">;
@@ -293,24 +326,203 @@ export interface Room {
   startUser: Id<"users"> | undefined;
   playing: boolean;
   noOfPlayers: number;
+  ishost: boolean;
   request: string;
 }
-const Notch = ({ req, ishost }: { req: string; ishost?: boolean }) => {
-  const color =
-    req.toLowerCase() === "pending"
-      ? "orange"
-      : req === "accepted"
-        ? "green"
-        : req === "rejected"
-          ? "red"
-          : ishost
-            ? "pink"
-            : "";
 
+export type toast = (
+  message?: string | undefined,
+  type?: "success" | "error" | "info" | undefined,
+  duration?: number | undefined
+) => void;
+
+export type navigate = NavigateFunction;
+
+export type ALreadyRoomPlayer =
+  | {
+      ok: boolean;
+      roomId: Id<"rooms">;
+      message?: undefined;
+    }
+  | {
+      ok: boolean;
+      message: string;
+      roomId?: undefined;
+    }
+  | undefined;
+// const Notch = ({ req, ishost }: { req: string; ishost?: boolean }) => {
+//   const color =
+//     req.toLowerCase() === "pending"
+//       ? "orange"
+//       : req === "accepted"
+//         ? "green"
+//         : req === "rejected"
+//           ? "red"
+//           : ishost
+//             ? "pink"
+//             : "";
+
+//   return (
+//     <div
+//       style={{ backgroundColor: color }}
+//       className={` rounded-full p-1 absolute top-1 right-1`}
+//     />
+//   );
+// };
+
+const RoomCard = ({
+  room,
+  roomPlayer,
+  onFinish,
+  toast,
+  navigate,
+}: {
+  room: Room;
+  roomPlayer: ALreadyRoomPlayer;
+  onFinish: () => void;
+  toast: toast;
+  navigate: navigate;
+}) => {
   return (
-    <div
-      style={{ backgroundColor: color }}
-      className={` rounded-full p-1 absolute top-1 right-1`}
-    />
+    <div className="w-2/5 max-lg:w-full cursor-pointer active:bg-black active:shadow-none hover:shadow-[0_0_20px_#f845669c] flex items-center justify-between p-5 rounded-lg shadow- shadow-primary/20- bg-primary/10 border border-primary">
+      <div className="flex flex-col">
+        <div className="flex items-center gap-x-3">
+          <span className="font-medium text-primary text-lg">
+            {room.name ?? "Ukn"}
+          </span>
+          <span className="flex items-center capitalize gap-x-1">
+            <CrownIcon className="!text-amber-400 size-4" />
+            <span className="text-sm">
+              {room.ishost ? "You" : room.host?.username}
+            </span>
+          </span>
+        </div>
+        <div className="flex items-center gap-x-5">
+          <span className="flex items-center gap-x-1 text-xs">
+            <Tooltip title="Players/Max-players" className="cursor-pointer">
+              <UsersIcon className="size-4" />
+            </Tooltip>
+            <span>
+              {room.noOfPlayers} / {room.maxPlayers}
+            </span>
+          </span>
+          <span className="flex items-center gap-x-1 text-xs">
+            <Tooltip title="Number of riddles">
+              <CircleQuestionMark className="size-4 cursor-pointer" />
+            </Tooltip>
+            <span>{room.noOfRiddles}</span>
+          </span>
+        </div>
+      </div>
+      <div>
+        <Button
+          onClick={() => {
+            action({
+              room,
+              roomPlayer,
+              onFinish,
+              toast,
+              navigate,
+            });
+          }}
+          className="!bg-transparent !flex !items-center !justify-center !gap-0 !px-2 !py-3"
+          size="small"
+        >
+          <span>{renderMeta({ room, roomPlayer })}</span>
+        </Button>
+      </div>
+    </div>
   );
+};
+
+const renderMeta = ({
+  room,
+  roomPlayer,
+}: {
+  room: Room;
+  roomPlayer: ALreadyRoomPlayer;
+}) => {
+  let shouldNavigate = false;
+  if (room.ishost) {
+    shouldNavigate = true;
+  } else if (room.noOfPlayers >= room.maxPlayers) {
+    if (roomPlayer?.ok) {
+      shouldNavigate = true;
+    }
+  }
+  if (room.playing) {
+    return <span className="text-primary">Match started</span>;
+  } else if (room.request === "accepted") {
+    return (
+      <Link to={`/room/details/${room._id}`} className="text-primary">
+        Visit
+      </Link>
+    );
+  } else if (room.request === "pending") {
+    return <span className="text-sky-500">pending req.</span>;
+  } else if (shouldNavigate) {
+    return (
+      <Link to={`/room/details/${room._id}`} className="text-primary">
+        Visit
+      </Link>
+    );
+  } else {
+    return (
+      <div className="!flex !items-center !justify-center !gap-0">
+        <PlayIcon className="fill-primary" />
+        <span className="text-primary">Join</span>
+      </div>
+    );
+  }
+};
+
+const action = ({
+  room,
+  roomPlayer,
+  onFinish,
+  navigate,
+  toast,
+}: {
+  room: Room;
+  roomPlayer: ALreadyRoomPlayer;
+  onFinish: () => void;
+  toast: toast;
+  navigate: navigate;
+}) => {
+  if (room.playing) {
+    toast("This room is currently playing", "info");
+    return;
+  }
+  if (room.request === "accepted") {
+    navigate(`/room/details/${room._id}`);
+    return;
+  }
+  if (room.request === "pending") {
+    toast("You already have a req for this room");
+    return;
+  }
+  if (room.noOfPlayers >= room.maxPlayers) {
+    if (roomPlayer?.ok) {
+      if (roomPlayer.roomId === room._id) {
+        navigate(`/room/details/${room._id}`);
+      }
+      toast("You are already a player in a room", "info");
+      return;
+    }
+    toast("Sorry, room is already full");
+    return;
+  }
+  if (roomPlayer?.ok) {
+    if (roomPlayer.roomId === room._id) {
+      navigate(`/room/details/${room._id}`);
+    }
+    toast("You are already a player in a room", "info");
+    return;
+  }
+  if (room.ishost) {
+    toast("You own the room already");
+    navigate(`/room/details/${room._id}`);
+    return;
+  }
+  onFinish();
 };

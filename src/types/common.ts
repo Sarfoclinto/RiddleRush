@@ -166,7 +166,11 @@ export interface ScoreBarProps extends React.HTMLAttributes<HTMLDivElement> {
   // accessibility
   ariaLabel?: string; // default: "Score breakdown"
 }
-export type SoundPlayMode = "once" | "interval" | "everyShake" | "countincrease";
+export type SoundPlayMode =
+  | "once"
+  | "interval"
+  | "everyShake"
+  | "countincrease";
 
 export type NotificationBellProps = {
   hasUnread: boolean; // required: whether there's an unread notification
@@ -196,3 +200,16 @@ export interface GlowingTextProps {
   // If true the wrapper is fixed bottom center. If false, it will flow inline where placed.
   fixedBottom?: boolean;
 }
+
+export type ClapAudioProps = {
+  /** Public URL or imported module path to audio (e.g. '/sounds/clap.mp3' or imported file) */
+  src: string;
+  /** how long to play in milliseconds */
+  durationMs?: number;
+  /** 0..1 */
+  volume?: number;
+  /** whether to attempt autoplay on mount */
+  autoplay?: boolean;
+  /** callback when audio stops (after duration or when manually stopped) */
+  onEnd?: () => void;
+};

@@ -405,14 +405,31 @@ export const getPublicRooms = query({
     const roomsWithPlaytime = rooms.filter((r) => !!r.playtimeId);
     if (roomsWithPlaytime.length === 0) return [];
 
+    const roomPlaytimes = await Promise.all(
+      roomsWithPlaytime.map(async (rm) => {
+        const playtime = await ctx.db.get(rm.playtimeId!);
+        return {
+          room: rm,
+          playtime,
+          noOfRiddles: playtime?.riddles.length || 0,
+        };
+      })
+    );
+
+    const notCompleted = roomPlaytimes
+      .filter((pl) => !pl.playtime?.completed)
+      .map((pl) => ({ ...pl.room, noOfRiddles: pl.noOfRiddles }));
+
     // 2) Compute noOfPlayers:
     //    - use room.playersCount when present
     //    - otherwise, count roomPlayers for that room (in parallel for the subset)
     const countsByRoom = new Map<string, number>();
-    const roomsMissingCount = rooms.filter((r) => r.playersCount == null);
+    const roomsMissingCount = notCompleted.filter(
+      (r) => r.playersCount == null
+    );
 
     // For rooms with denormalized playersCount, use that
-    for (const r of rooms) {
+    for (const r of notCompleted) {
       if (typeof r.playersCount === "number") {
         countsByRoom.set(r._id, r.playersCount);
       }
@@ -437,7 +454,7 @@ export const getPublicRooms = query({
     // doesn't exist, fall back to per-room parallel queries.
     const requestStatusByRoom = new Map<string, string>();
 
-    const roomIds = rooms.map((r) => r._id);
+    const roomIds = notCompleted.map((r) => r._id);
 
     try {
       // bulk fetch: all requests for this user (requires index "by_userId")
@@ -461,7 +478,7 @@ export const getPublicRooms = query({
       // likely the 'by_userId' index does not exist; fall back to per-room queries
       console.error(err);
       const perRoom = await Promise.all(
-        rooms.map(async (room) => {
+        notCompleted.map(async (room) => {
           const req = await ctx.db
             .query("roomRequests")
             .withIndex("by_roomId", (q) =>
@@ -475,7 +492,7 @@ export const getPublicRooms = query({
     }
 
     // 4) Build result: remove any playtime references (none needed), include playing & noOfPlayers & request
-    const result = rooms.map((room) => {
+    const result = notCompleted.map((room) => {
       return {
         _id: room._id,
         code: room.code,
@@ -484,6 +501,7 @@ export const getPublicRooms = query({
         status: room.status,
         maxPlayers: room.maxPlayers,
         startUser: room.startUser,
+        noOfRiddles: room.noOfRiddles,
         // playing is now on the room itself
         playing: !!room.playing,
         ishost: room.hostId === user._id,
@@ -492,7 +510,14 @@ export const getPublicRooms = query({
       };
     });
 
-    return result;
+    const resultWithHostDetails = await Promise.all(
+      result.map(async (room) => {
+        const details = await ctx.db.get(room.hostId);
+        return { ...room, host: details };
+      })
+    );
+
+    return resultWithHostDetails;
   },
 });
 

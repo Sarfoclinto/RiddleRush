@@ -8,6 +8,9 @@ import ScoreBar from "./ScoreBar";
 import { XIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LoadingDots from "./LoadingDots";
+import ClapAudio from "./ClapAudio";
+import clap from "/clap.mp3";
+import FallingParticles from "./FallingParticles";
 
 type SinglePlayedProps = {
   playtime: HeaderPlaytime;
@@ -15,6 +18,13 @@ type SinglePlayedProps = {
 const SinglePlayed = ({ playtime }: SinglePlayedProps) => {
   const [closing, setClosing] = useState(false);
   const navigate = useNavigate();
+  // durations in milliseconds
+  const clapDuration = 9500;
+  const particlesDuration = 9500;
+
+  // fallback UI when autoplay blocked
+  // const [autoplayFailed, setAutoplayFailed] = useState(false);
+
   const riddleDetails = useQuery(api.playtime.getPlaytimeRiddlesDetails, {
     id: playtime._id,
   });
@@ -58,6 +68,32 @@ const SinglePlayed = ({ playtime }: SinglePlayedProps) => {
   };
   return (
     <div className="relative flex flex-col gap-y-3 items-center lg:justify-center w-full h-full text-xl font-medium text-primary overflow-auto">
+      <>
+        <ClapAudio
+          src={clap}
+          durationMs={clapDuration}
+          volume={0.8}
+          autoplay={true}
+          onEnd={() => {
+            // no-op or analytics
+          }}
+        />
+        <FallingParticles
+          durationMs={particlesDuration}
+          particleCount={45}
+          colors={[
+            "#FF4D6D",
+            "#FFB86B",
+            "#FFD36B",
+            "#6BFFB8",
+            "#6BC7FF",
+            "#A56BFF",
+          ]}
+          sizeRange={[14, 34]}
+          zIndex={1200}
+          fullScreen={true}
+        />
+      </>
       {/* <Header playtime={playtime} showProgress={false} /> */}
       <button
         onClick={handleClose}

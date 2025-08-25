@@ -41,11 +41,14 @@ const Navbar = () => {
           className="md:hidden absolute top-6 right-6 w-6 h-6 cursor-pointer"
           onClick={toggleMenu}
         />
-        <Link onClick={linkOnClick} to="/home">
+        <Link onClick={linkOnClick} to="/home" className="text-primary">
           Home
         </Link>
         <Link onClick={linkOnClick} to="/room/join">
-          Rooms
+          Join Room
+        </Link>
+        <Link onClick={linkOnClick} to="/room/create" className="text-primary">
+          Create Room
         </Link>
       </div>
 
