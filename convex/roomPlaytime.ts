@@ -6,6 +6,7 @@ import {
   computeUserPointersFromIndex,
 } from "./utils/fns";
 import type { Id } from "./_generated/dataModel";
+import { getAuthUser } from "./users";
 
 export const createRoomPlaytime = mutation({
   args: {
@@ -266,6 +267,12 @@ export const advancePlaytime = mutation({
     // 1) fetch current playtime
     const playtime = await ctx.db.get(playtimeId);
     if (!playtime) throw new Error("Playtime not found");
+
+    const user = await getAuthUser(ctx);
+
+    if (user && user._id !== playtime.currentUser) {
+      return { ok: false, message: "You are not the current player" };
+    }
 
     if (!playtime.roomId) throw new Error("Playtime has no roomId");
 

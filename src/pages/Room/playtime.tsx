@@ -19,6 +19,7 @@ import { isAnswerCorrect } from "@/utils/riddleFns";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import DeleteOrQuitModal from "../Alone/components/DeleteOrQuitModal";
 import { capitalize } from "@/utils/fns";
+import AudioControl from "@/components/AudioControl";
 
 const SECONDS = 5;
 const RoomPlaytime = () => {
@@ -31,30 +32,31 @@ const RoomPlaytime = () => {
   const [quiting, setQuiting] = useState(false);
   const [proceeding, setProceeding] = useState(false);
   const skipInProgressRef = useRef<boolean>(false); // guard so we don't double-skip
-  const [countdownDone, setCountdownDone] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const val = localStorage.getItem("countdownDone");
-    if (!val) return false;
-    try {
-      const parsed = JSON.parse(val);
-      // it parsed.at is more than 1 minute ago return as true
-      if (parsed && parsed.at && Date.now() - parsed.at > 60 * 1000) {
-        return true;
-      }
-      if (
-        parsed &&
-        parsed.done === true &&
-        parsed.roomId === roomId &&
-        parsed.roomPlaytimeId === roomPlaytimeId &&
-        parsed.seconds === SECONDS
-      ) {
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  });
+  const [countdownDone, setCountdownDone] = useState(false);
+  // () => {
+  //   if (typeof window === "undefined") return false;
+  //   const val = localStorage.getItem("countdownDone");
+  //   if (!val) return false;
+  //   try {
+  //     const parsed = JSON.parse(val);
+  //     // it parsed.at is more than 1 minute ago return as true
+  //     if (parsed && parsed.at && Date.now() - parsed.at > 60 * 1000) {
+  //       return true;
+  //     }
+  //     if (
+  //       parsed &&
+  //       parsed.done === true &&
+  //       parsed.roomId === roomId &&
+  //       parsed.roomPlaytimeId === roomPlaytimeId &&
+  //       parsed.seconds === SECONDS
+  //     ) {
+  //       return true;
+  //     }
+  //     return false;
+  //   } catch {
+  //     return false;
+  //   }
+  // };
 
   const toast = useCallback(
     (message?: string, type?: "success" | "error" | "info") => {
@@ -132,20 +134,25 @@ const RoomPlaytime = () => {
   // );
 
   useEffect(() => {
-    if (riddle) return;
+    // do nothing until we have a riddle
+    if (!riddle) return;
+
+    // ensure we have a valid duration
+    const duration = roomData?.settings?.riddleTimeSpan ?? 0;
+
     try {
-      // give the timer a moment to mount if you remount via key (not strictly necessary)
-      if (timerRef.current?.reset) {
-        timerRef.current.reset(roomData?.settings?.riddleTimeSpan);
-        timerRef.current.start?.();
+      // always reset timer when riddle changes so it starts fresh
+      timerRef.current?.reset?.(duration);
+
+      if (countdownDone) {
+        timerRef.current?.start?.();
+      } else {
+        timerRef.current?.stop?.();
       }
     } catch (err) {
-      console.warn(
-        "Timer control methods not available on ref — falling back to key remount.",
-        err
-      );
+      console.warn("Timer control methods not available or failed", err);
     }
-  }, [riddle, roomData?.settings?.riddleTimeSpan, riddle?._id]);
+  }, [riddle, roomData?.settings?.riddleTimeSpan, riddle?._id, countdownDone]);
 
   // useEffect(() => {
   //   if (turn && turn.user) {
@@ -156,6 +163,8 @@ const RoomPlaytime = () => {
   useEffect(() => {
     if (countdownDone) {
       timerRef.current?.start();
+    } else {
+      timerRef.current?.stop();
     }
   }, [countdownDone]);
 
@@ -178,6 +187,11 @@ const RoomPlaytime = () => {
           result: reason,
         });
         toast("Time's up — skipped!", "info");
+        try {
+          timerRef.current?.reset?.();
+        } catch (err) {
+          console.error("timer stop error:", err);
+        }
         setValue("");
       } catch (err) {
         console.error("autoSkip error:", err);
@@ -192,6 +206,16 @@ const RoomPlaytime = () => {
 
   const isMyTurn = roomData?.user._id === roomData?.roomPlaytime?.currentUser;
   const disable = !isMyTurn || !isAuthenticated || proceeding;
+
+  // small wrapper that prevents immediate duplicate calls and passes expectedCurrentUser
+  const handleTimedOut = useCallback(() => {
+    if (skipInProgressRef.current) return; // cheap local guard
+
+    // optional: capture the current user so mutation can be idempotent/conditional server-side
+    // const expectedCurrentUser = roomData?.roomPlaytime?.currentUser;
+
+    autoSkip("timedOut");
+  }, [autoSkip]);
 
   if (!roomData || !roomData.roomPlaytime) {
     return (
@@ -245,10 +269,6 @@ const RoomPlaytime = () => {
 
   const handleSkip = async () => {
     await autoSkip("skipped");
-  };
-
-  const handleTimedOut = async () => {
-    await autoSkip("timedOut");
   };
 
   const handleOptionClick = async (choice: string) => {
@@ -309,7 +329,7 @@ const RoomPlaytime = () => {
   // console.log("roomData: ", roomData);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full overflow-auto scrollbar p-2">
       {contextHolder}
       {roomData ? (
         <div className="relative w-full h-full">
@@ -474,6 +494,7 @@ const RoomPlaytime = () => {
               ) : (
                 <div className="mx-auto mt-auto">
                   <GlowingText
+                    key={roomData.roomPlaytime?.currentRiddle ?? "glow"}
                     isPlaying={true}
                     text={
                       isMyTurn
@@ -540,6 +561,12 @@ const RoomPlaytime = () => {
                     />
                   );
                 })}
+              </div>
+              <div className="w-full flex items-center justify-center">
+                <AudioControl
+                  roomId={roomId!}
+                  userId={turn?.userId as Id<"users">}
+                />
               </div>
 
               {/* <div className="max-lg:hidden lg:flex lg:flex-col w-full debug h-full overflow-auto scrollbar"></div> */}

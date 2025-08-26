@@ -61,6 +61,18 @@ export default defineSchema({
     .index("by_user_code", ["code", "hostId"])
     .index("by_playtime", ["playtimeId"]),
 
+  presence: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    isOnline: v.boolean(),
+    isSpeaking: v.boolean(),
+    micEnabled: v.boolean(),
+    speakerEnabled: v.boolean(),
+    lastSeen: v.number(),
+  })
+    .index("by_room", ["roomId"])
+    .index("by_user", ["userId", "roomId"]),
+
   roomSettings: defineTable({
     roomId: v.id("rooms"),
     numberOfRiddles: v.number(),
@@ -83,7 +95,7 @@ export default defineSchema({
             v.literal("correct"),
             v.literal("incorrect"),
             v.literal("skipped"),
-            v.literal("timedOut"),
+            v.literal("timedOut")
           ),
         })
       )
@@ -147,4 +159,13 @@ export default defineSchema({
     .index("by_roomId", ["roomId"])
     .index("by_room_request_id", ["roomRequestId"])
     .index("by_room_receiver", ["roomId", "reciever"]),
+
+  webrtcSignals: defineTable({
+    roomId: v.id("rooms"),
+    fromUserId: v.id("users"),
+    toUserId: v.id("users"),
+    type: v.union(v.literal("offer"), v.literal("answer"), v.literal("ice")),
+    payload: v.any(), // small JSON: sdp or candidate
+    createdAt: v.number(),
+  }).index("by_to", ["toUserId", "roomId", "createdAt"]),
 });

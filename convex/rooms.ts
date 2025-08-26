@@ -127,9 +127,16 @@ export const getRoomById = query({
     const readyPlayersDetails = await Promise.all(
       readyPlayers.map(async (pl) => {
         const user = await ctx.db.get(pl.userId);
+        const userPresence = await ctx.db
+          .query("presence")
+          .withIndex("by_user", (q) =>
+            q.eq("userId", pl.userId).eq("roomId", pl.roomId)
+          )
+          .unique();
         return {
           ...pl,
           user,
+          presence: userPresence,
           ishost: user !== null ? user._id == room.hostId : false,
         };
       })
@@ -268,6 +275,15 @@ export const acceptRoomRequest = mutation({
         joinIndex,
       };
       await ctx.db.insert("roomPlayers", newPlayer);
+      await ctx.db.insert("presence", {
+        roomId: roomRequest.roomId,
+        userId: roomRequest.userId,
+        isOnline: true,
+        isSpeaking: false,
+        micEnabled: false,
+        speakerEnabled: true,
+        lastSeen: Date.now(),
+      });
 
       // 4) recompute random startUser among current players
       const playersAfterInsert = existing.concat([
