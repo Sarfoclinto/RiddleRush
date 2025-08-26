@@ -16,6 +16,7 @@ const Layout = () => {
   );
   const isPlayingRoom =
     pathname.includes("room") && pathname.includes("playtime");
+
   useEffect(() => {
     if (hasLiveRoom && hasLiveRoom.ok) {
       navigate(
@@ -23,6 +24,7 @@ const Layout = () => {
       );
     }
   }, [hasLiveRoom, navigate]);
+
 
   return (
     <div className="flex flex-col">

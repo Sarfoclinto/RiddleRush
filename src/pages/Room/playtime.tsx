@@ -37,6 +37,10 @@ const RoomPlaytime = () => {
     if (!val) return false;
     try {
       const parsed = JSON.parse(val);
+      // it parsed.at is more than 1 minute ago return as true
+      if (parsed && parsed.at && Date.now() - parsed.at > 60 * 1000) {
+        return true;
+      }
       if (
         parsed &&
         parsed.done === true &&
@@ -61,6 +65,7 @@ const RoomPlaytime = () => {
     },
     [messageApi]
   );
+
   const { roomId, roomPlaytimeId } = useParams<{
     roomId: Id<"rooms">;
     roomPlaytimeId: Id<"roomPlaytimes">;
@@ -142,11 +147,11 @@ const RoomPlaytime = () => {
     }
   }, [riddle, roomData?.settings?.riddleTimeSpan, riddle?._id]);
 
-  useEffect(() => {
-    if (turn && turn.user) {
-      toast(`It is ${capitalize(turn.user?.username)}'s turn`, "info");
-    }
-  }, [riddle?._id, toast, turn]);
+  // useEffect(() => {
+  //   if (turn && turn.user) {
+  //     toast(`It is ${capitalize(turn.user?.username)}'s turn`, "info");
+  //   }
+  // }, [riddle?._id, toast, turn]);
 
   useEffect(() => {
     if (countdownDone) {
@@ -292,7 +297,7 @@ const RoomPlaytime = () => {
       });
       toast(res.message);
       close();
-      navigate("/hoom");
+      navigate("/home");
     } catch (error) {
       console.error("an error occurred: ", error);
     } finally {
@@ -309,7 +314,7 @@ const RoomPlaytime = () => {
       {roomData ? (
         <div className="relative w-full h-full">
           <>
-            {countdownDone && (
+            {!countdownDone && (
               <Countdown
                 fullscreen
                 onComplete={() => {
@@ -432,7 +437,7 @@ const RoomPlaytime = () => {
                 )}
               </div>
 
-              {isMyTurn && (
+              {isMyTurn ? (
                 <div className="flex items-center justify-between px-5 w-full mt-2">
                   <Button
                     size={isMd ? "middle" : "small"}
@@ -465,6 +470,22 @@ const RoomPlaytime = () => {
                       <ChevronRightIcon className="bounce-x" />
                     </Button>
                   </div>
+                </div>
+              ) : (
+                <div className="mx-auto mt-auto">
+                  <GlowingText
+                    isPlaying={true}
+                    text={
+                      isMyTurn
+                        ? "It's your turn"
+                        : `It's ${capitalize(turn?.user?.username || "")} turn`
+                    }
+                    glowColor="#00d4ff" // optional
+                    pulseDuration={1.25} // optional (seconds)
+                    size="md" // 'sm' | 'md' | 'lg' | number(px)
+                    fixedBottom={false} // set false if you want inline behavior
+                    className="!cursor-pointer"
+                  />
                 </div>
               )}
             </div>
@@ -528,19 +549,6 @@ const RoomPlaytime = () => {
       ) : (
         <div className="flex w-full flex-col h-full items-center justify-center">
           <LoadingDots color="#f84565" size={20} />
-        </div>
-      )}
-      {isMyTurn && (
-        <div className="mx-auto mt-auto">
-          <GlowingText
-            isPlaying={isMyTurn}
-            text="It's your turn"
-            glowColor="#00d4ff" // optional
-            pulseDuration={1.25} // optional (seconds)
-            size="md" // 'sm' | 'md' | 'lg' | number(px)
-            fixedBottom={false} // set false if you want inline behavior
-            className="!cursor-pointer"
-          />
         </div>
       )}
 

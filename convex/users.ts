@@ -236,10 +236,27 @@ export const alreadyARoomPlayer = query({
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .first();
 
+    if (!player) {
+      return { ok: false, message: "You are not a player in any room" };
+    }
+
+    const room = await ctx.db.get(player?.roomId);
+    if (!room) {
+      return { ok: false, message: "You are not a player in any room" };
+    }
+
+    if (!room.playtimeId) {
+      return { ok: false, message: "Room doesn't have a playtime" };
+    }
+    const roomPlaytime = await ctx.db.get(room.playtimeId);
+    if (!roomPlaytime) {
+      return { ok: false, message: "Room doesn't have a playtime" };
+    }
+    if (roomPlaytime.completed) {
+      return { ok: false, message: "Room playtime is over" };
+    }
     if (player) {
       return { ok: true, roomId: player.roomId };
-    } else {
-      return { ok: false, message: "You are not a player in any room" };
     }
   },
 });
@@ -331,38 +348,42 @@ export const hasPlayingRoom = query({
     const user = await getAuthUser(ctx);
     if (!user) throw new Error("User not found");
 
-    const roomPlayer = await ctx.db
+    const roomPlayers = await ctx.db
       .query("roomPlayers")
       .withIndex("by_user_ready", (q) =>
         q.eq("userId", user._id).eq("ready", true)
       )
-      .first();
+      .collect();
 
-    if (!roomPlayer) {
+    if (!roomPlayers || roomPlayers.length === 0) {
       return { ok: false, message: "You are not a player in any room" };
     }
 
-    const room = await ctx.db.get(roomPlayer.roomId);
-    if (!room) {
-      return { ok: false, message: "Room not found" };
+    for (const pl of roomPlayers) {
+      // defensive: make sure pl.roomId exists
+      if (!pl.roomId) continue;
+
+      const room = await ctx.db.get(pl.roomId).catch(() => null);
+      if (!room) continue; // skip this player entry
+
+      if (!room.playtimeId) continue;
+
+      const roomPlaytime = await ctx.db.get(room.playtimeId).catch(() => null);
+
+      if (!roomPlaytime) continue;
+      if (roomPlaytime.completed) continue;
+
+      if (room.playing) {
+        return {
+          ok: true,
+          roomId: room._id,
+          roomPlaytimeId: room.playtimeId,
+        };
+      }
+      // otherwise continue searching other roomPlayers
     }
 
-    if (room.playtimeId) {
-      const roomPlaytime = await ctx.db.get(room.playtimeId);
-      if (!roomPlaytime) {
-        return { ok: false, message: "No playtime for room" };
-      }
-      if (roomPlaytime.completed) {
-        return { ok: false, message: "Playtime is completed" };
-      }
-      if (room.playing) {
-        return { ok: true, roomId: room._id, roomPlaytimeId: room.playtimeId };
-      } else {
-        return { ok: false, message: "No playing room yet" };
-      }
-    } else {
-      return { ok: false, message: "No active playtime in your room" };
-    }
+    return { ok: false, message: "No playing room found" };
   },
 });
 

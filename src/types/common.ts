@@ -1,4 +1,5 @@
 import type { Id } from "convex/_generated/dataModel";
+import type { NavigateFunction } from "react-router-dom";
 
 type Category = "science" | "math" | "mystery" | "funny" | "logic" | "who-am-i";
 
@@ -213,3 +214,49 @@ export type ClapAudioProps = {
   /** callback when audio stops (after duration or when manually stopped) */
   onEnd?: () => void;
 };
+
+export interface Room {
+  host: {
+    _id: Id<"users">;
+    _creationTime: number;
+    email?: string | undefined;
+    fullname?: string | undefined;
+    clerkId?: string | undefined;
+    image?: string | undefined;
+    username: string;
+  } | null;
+  _id: Id<"rooms">;
+  noOfRiddles: number;
+  code: string;
+  name: string | undefined;
+  hostId: Id<"users">;
+  status: "public" | "private";
+  maxPlayers: number;
+  startUser: Id<"users"> | undefined;
+  playing: boolean;
+  noOfPlayers: number;
+  ishost: boolean;
+  request: string;
+}
+
+export type toast = (
+  message?: string | undefined,
+  type?: "success" | "error" | "info" | undefined,
+  duration?: number | undefined
+) => void;
+
+export type navigate = NavigateFunction;
+
+export type ALreadyRoomPlayer =
+  | {
+      ok: boolean;
+      roomId: Id<"rooms">;
+      message?: undefined;
+    }
+  | {
+      ok: boolean;
+      message: string;
+      roomId?: undefined;
+    }
+  | null
+  | undefined;
