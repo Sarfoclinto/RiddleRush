@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Countdown from "@/components/Countdown";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +34,11 @@ const RoomPlaytime = () => {
   const [proceeding, setProceeding] = useState(false);
   const skipInProgressRef = useRef<boolean>(false); // guard so we don't double-skip
   const [countdownDone, setCountdownDone] = useState(false);
+
+  // new refs & state (place near top of component)
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const prevCurrentUserRef = useRef<string | null>(null);
+  const [myTurnNotify, setMyTurnNotify] = useState(false);
   // () => {
   //   if (typeof window === "undefined") return false;
   //   const val = localStorage.getItem("countdownDone");
@@ -216,6 +222,65 @@ const RoomPlaytime = () => {
 
     autoSkip("timedOut");
   }, [autoSkip]);
+
+  // simple beep using WebAudio (no external file)
+  const playBeep = useCallback(() => {
+    try {
+      const AudioCtx =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ac = new AudioCtx();
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.connect(g);
+      g.connect(ac.destination);
+      o.type = "sine";
+      o.frequency.value = 880;
+      g.gain.value = 0.0001;
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.08, ac.currentTime + 0.01);
+      setTimeout(() => {
+        o.stop();
+        ac.close();
+      }, 220);
+    } catch (e) {
+      console.error(e);
+      // ignore if Audio not allowed / blocked
+    }
+  }, []);
+
+  useEffect(() => {
+    const cur = roomData?.roomPlaytime?.currentUser ?? null;
+    const myId = roomData?.user?._id ?? null;
+
+    // If nothing changed, do nothing.
+    if (prevCurrentUserRef.current === cur) return;
+
+    // If it just changed to the local user, notify:
+    if (cur && myId && cur === myId) {
+      // UI toast
+      toast("It's your turn!", "info");
+
+      // visual state you can use to adjust GlowingText or other UI briefly
+      setMyTurnNotify(true);
+      setTimeout(() => setMyTurnNotify(false), 3000);
+
+      // focus the input so user can type immediately
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100); // slight delay to ensure element exists
+
+      // short audible beep
+      playBeep();
+    }
+
+    // store last seen
+    prevCurrentUserRef.current = cur;
+  }, [
+    roomData?.roomPlaytime?.currentUser,
+    roomData?.user?._id,
+    toast,
+    playBeep,
+  ]);
 
   if (!roomData || !roomData.roomPlaytime) {
     return (
@@ -418,6 +483,7 @@ const RoomPlaytime = () => {
 
                       <input
                         type="text"
+                        ref={inputRef}
                         value={value}
                         disabled={!isMyTurn}
                         onChange={(e) => setValue(e.target.value)}
@@ -497,9 +563,11 @@ const RoomPlaytime = () => {
                     key={roomData.roomPlaytime?.currentRiddle ?? "glow"}
                     isPlaying={true}
                     text={
-                      isMyTurn
-                        ? "It's your turn"
-                        : `It's ${capitalize(turn?.user?.username || "")} turn`
+                      myTurnNotify
+                        ? "It's your turn — go!"
+                        : isMyTurn
+                          ? "It's your turn"
+                          : `It's ${capitalize(turn?.user?.username || "")} turn`
                     }
                     glowColor="#00d4ff" // optional
                     pulseDuration={1.25} // optional (seconds)
