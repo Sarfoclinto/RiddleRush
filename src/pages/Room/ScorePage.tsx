@@ -144,7 +144,7 @@ const ScorePage = () => {
         ))}
       </div>
 
-      <div className="w-full overflow-auto scrollbar ">
+      <div className="w-full overflow-auto scrollbar mt-10">
         {isMobile ? (
           <Table
             dataSource={mobileData}

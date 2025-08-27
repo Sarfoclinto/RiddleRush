@@ -114,6 +114,7 @@ const NotCard = ({ nt }: { nt: Notification }) => {
         // roomId: nt.roomId!,
         notificationId: nt._id,
       });
+      navigate(`/room/details/${nt.roomId}`);
     } catch (error) {
       console.error(error);
     } finally {

@@ -493,7 +493,7 @@ const RoomPlaytime = () => {
                     </div>
 
                     {riddle.choices && riddle.choices.length > 0 && (
-                      <div className="flex flex-col items-center w-full lg:w-9/12 mt-4">
+                      <div className="flex flex-col items-center w-full lg:w-9/12 mt-4 h-full self-stretch overflow-auto scrollbar">
                         <div className="w-full mb-3">
                           <strong className="text-sm">
                             Or pick one (multiple choice):
