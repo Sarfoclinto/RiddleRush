@@ -1,16 +1,18 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getAuthUser } from "./users";
 
 export const sendSignal = mutation({
   args: {
     roomId: v.id("rooms"),
-    fromUserId: v.id("users"),
+    // fromUserId: v.id("users"),
     toUserId: v.id("users"),
     type: v.union(v.literal("offer"), v.literal("answer"), v.literal("ice")),
     payload: v.any(),
   },
-  handler: async (ctx, { fromUserId, payload, roomId, toUserId, type }) => {
+  handler: async (ctx, { payload, roomId, toUserId, type }) => {
     const now = Date.now();
+    const user = await getAuthUser(ctx);
 
     // Basic validation: ensure the type is allowed
     if (!["offer", "answer", "ice"].includes(type)) {
@@ -22,7 +24,7 @@ export const sendSignal = mutation({
     const fromPres = await ctx.db
       .query("presence")
       .withIndex("by_user", (q) =>
-        q.eq("userId", fromUserId).eq("roomId", roomId)
+        q.eq("userId", user._id).eq("roomId", roomId)
       )
       .first();
 
@@ -33,17 +35,24 @@ export const sendSignal = mutation({
       )
       .first();
 
-    if (!fromPres) {
-      throw new Error("Sender not present in room");
-    }
-    if (!toPres) {
-      throw new Error("Recipient not present in room");
-    }
+    // if (!fromPres) {
+    //   throw new Error("Sender not present in room");
+    // }
+    // if (!toPres) {
+    //   throw new Error("Recipient not present in room");
+    // }
+    console.log(
+      fromPres?._id +
+        " fromPres id -  " +
+        user.username +
+        " is sending signal to " +
+        toPres?.userId
+    );
 
     // Insert signal
     await ctx.db.insert("webrtcSignals", {
       roomId,
-      fromUserId,
+      fromUserId: user._id,
       toUserId,
       type,
       payload,

@@ -179,7 +179,13 @@ const RoomPlaytime = () => {
       localStorage.removeItem("countdownDone");
       navigate(`/room/scores/${roomId}/${roomPlaytimeId}`);
     }
-  }, [navigate, roomData?.roomPlaytime?.completed, roomId, roomPlaytimeId]);
+  }, [
+    navigate,
+    roomData?.roomPlaytime?.completed,
+    roomId,
+    roomPlaytimeId,
+    roomData?.roomPlaytime?.currentRiddle,
+  ]);
 
   // AUTO-SKIP function used by timer onComplete and can be reused by Skip button
   const autoSkip = useCallback(
@@ -458,7 +464,7 @@ const RoomPlaytime = () => {
           </>
 
           <div className="flex flex-row max-lg:flex-col-reverse gap-1 p-1 w-full items-start h-full overflow-auto scrollbar max-lg:justify-end">
-            <div className="w-full lg:w-2/3 lg:h-full">
+            <div className="w-full lg:w-2/3 lg:h-full overflow-auto scrollbar py-2">
               <div className="w-full">
                 <TimerProgressBar
                   key={roomData.roomPlaytime?.currentRiddle ?? "timer"}
@@ -473,7 +479,7 @@ const RoomPlaytime = () => {
                 />
               </div>
 
-              <div className="flex flex-col w-full my-5 py-5">
+              <div className="flex flex-col w-full my-5 py-5 overflow-auto scrollbar">
                 {riddle ? (
                   <div className="flex flex-col gap-y-5 w-full items-center-safe">
                     <div className="flex flex-col gap-y-5 w-full items-center-safe">
@@ -493,7 +499,7 @@ const RoomPlaytime = () => {
                     </div>
 
                     {riddle.choices && riddle.choices.length > 0 && (
-                      <div className="flex flex-col items-center w-full lg:w-9/12 mt-4 h-full self-stretch overflow-auto scrollbar">
+                      <div className="flex flex-col items-center w-full lg:w-9/12 mt-4 h-full self-stretch overflow-auto scrollbar py-2">
                         <div className="w-full mb-3">
                           <strong className="text-sm">
                             Or pick one (multiple choice):

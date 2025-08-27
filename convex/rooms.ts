@@ -50,6 +50,15 @@ export const createRoom = mutation({
       ready: true,
       joinIndex: 0,
     });
+    await ctx.db.insert("presence", {
+      roomId: roomId,
+      userId: user._id,
+      isOnline: true,
+      isSpeaking: false,
+      micEnabled: false,
+      speakerEnabled: true,
+      lastSeen: Date.now(),
+    });
 
     return roomId;
   },

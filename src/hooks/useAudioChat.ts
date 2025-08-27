@@ -134,7 +134,7 @@ export function useAudioChat(roomId: Id<"rooms">, userId: Id<"users">) {
           // send candidate to the peer
           sendSignal({
             roomId,
-            fromUserId: userId,
+            // fromUserId: userId,
             toUserId: otherUserId,
             type: "ice",
             payload: ev.candidate.toJSON(),
@@ -149,7 +149,7 @@ export function useAudioChat(roomId: Id<"rooms">, userId: Id<"users">) {
           await pc.setLocalDescription(offer);
           await sendSignal({
             roomId,
-            fromUserId: userId,
+            // fromUserId: userId,
             toUserId: otherUserId,
             type: "offer",
             payload: pc.localDescription,
@@ -161,7 +161,7 @@ export function useAudioChat(roomId: Id<"rooms">, userId: Id<"users">) {
 
       return pc;
     },
-    [localStream, roomId, userId, sendSignal, speakerEnabled]
+    [localStream, roomId, sendSignal, speakerEnabled]
   );
 
   // ---------- Maintain peer map based on presence ----------
@@ -240,7 +240,7 @@ export function useAudioChat(roomId: Id<"rooms">, userId: Id<"users">) {
 
             await sendSignal({
               roomId,
-              fromUserId: userId,
+              // fromUserId: userId,
               toUserId: fromId,
               type: "answer",
               payload: pc.localDescription,
